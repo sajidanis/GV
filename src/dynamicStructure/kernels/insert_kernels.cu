@@ -164,3 +164,158 @@ __global__ void update_edge_queue(unsigned long pop_count){
     else
         d_e_queue.front = (d_e_queue.front + (unsigned int)pop_count) % EDGE_PREALLOCATE_LIST_SIZE;
 }
+
+__global__ void device_remove_batch_duplicates(unsigned long vertex_size, unsigned long batch_size, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_source_degrees) {
+    unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (id < batch_size) {
+
+        unsigned long source = device_binary_search((unsigned long *)d_csr_offset, id, vertex_size + 1);
+        unsigned long index_counter = id - d_csr_offset[source];
+
+        unsigned long start_index = id;
+        unsigned long end_index = d_csr_offset[source + 1];
+        unsigned long index = start_index;
+        unsigned long prev_value = d_csr_edges[index++];
+
+        // removing self-loops and duplicate edges
+        for (unsigned long i = start_index + 1; i < end_index; i++){
+
+            if ((d_csr_edges[i] == d_csr_edges[id]) || (d_csr_edges[i] == (source + 1))) {
+                // if((d_csr_edges[i] == d_csr_edges[id])) {
+                d_csr_edges[i] = INFTY;
+            }
+        }
+    }
+}
+
+__global__ void device_update_source_degrees(unsigned long vertex_size, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_source_degrees) {
+    unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (id < vertex_size){
+
+        unsigned long start_index = d_csr_offset[id];
+        unsigned long end_index = d_csr_offset[id + 1];
+
+        if (start_index < end_index){
+
+            for (unsigned long i = start_index; i < end_index; i++){
+
+                if (d_csr_edges[i] == INFTY)
+                    d_source_degrees[id]--;
+            }
+
+            unsigned long l_index = start_index;
+            unsigned long r_index = end_index - 1;
+
+            while (l_index < r_index){
+
+                while ((d_csr_edges[l_index] != INFTY) && (l_index < r_index))
+                    l_index++;
+                while ((d_csr_edges[r_index] == INFTY) && (l_index < r_index))
+                    r_index--;
+
+                // printf("ID=%lu, l_index=%lu, r_index=%lu\n", id, l_index, r_index);
+
+                if (l_index < r_index){
+                    // printf("ID=%lu, l_index=%lu, r_index=%lu\n", id, l_index, r_index);
+                    unsigned long temp = d_csr_edges[l_index];
+                    d_csr_edges[l_index] = d_csr_edges[r_index];
+                    d_csr_edges[r_index] = temp;
+                    // d_source_degrees[id]--;
+                }
+            }
+        }
+    }
+}
+
+__global__ void batched_delete_preprocessing_EC_LD(VertexDictionary *device_vertex_dictionary, unsigned long vertex_size, unsigned long *d_csr_offset, unsigned long *d_prefix_sum_edge_blocks, unsigned long *d_source_degrees, unsigned long *d_source_vector) {
+    unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (id < vertex_size){
+        unsigned long vertex_edge_blocks = device_vertex_dictionary->edge_block_count[id];
+        unsigned long batch_degree = d_csr_offset[id + 1] - d_csr_offset[id];
+
+        d_source_vector[id] = vertex_edge_blocks * batch_degree;
+    }
+    
+}
+
+__global__ void batched_delete_kernel_EC_LD(VertexDictionary *device_vertex_dictionary, unsigned long vertex_size, unsigned long batch_size, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_prefix_sum_edge_blocks, unsigned long *d_source_vector) {
+
+    unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if ((id < ceil((double)d_source_vector[vertex_size]))) {
+
+        unsigned long source_vertex = device_binary_search(d_source_vector, id, vertex_size + 1);
+        unsigned long input_batch_degree = d_csr_offset[source_vertex + 1] - d_csr_offset[source_vertex];
+        unsigned long index_counter = id - d_source_vector[source_vertex];
+        // unsigned long thread_count_source = d_source_vector[source_vertex + 1] - d_source_vector[source_vertex];
+        unsigned long edge_block_index = index_counter / input_batch_degree;
+        unsigned long target_vertex = d_csr_edges[d_csr_offset[source_vertex] + (index_counter % input_batch_degree)];
+
+        if (target_vertex != INFTY) {
+            unsigned long bit_string = bit_string_lookup[edge_block_index];
+            EdgeBlock *root = device_vertex_dictionary->edge_block_address[source_vertex];
+
+            root = traverse_bit_string(root, bit_string);
+
+            for (unsigned long i = 0; i < EDGE_BLOCK_SIZE; i++){
+
+                if (root->edge_block_entry[i].destination_vertex == 0)
+                    break;
+                else{
+                    if ((root->edge_block_entry[i].destination_vertex == target_vertex)) {
+                        root->edge_block_entry[i].destination_vertex = INFTY;
+                        // device_vertex_dictionary->active_edge_count[source_vertex]--;
+                        atomicDec(&(device_vertex_dictionary->active_edge_count[source_vertex]), INFTY);
+                        // root->active_edge_count--;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+__global__ void batched_delete_kernel_EC_HD(VertexDictionary *device_vertex_dictionary, unsigned long vertex_size, unsigned long batch_size, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_prefix_sum_edge_blocks, unsigned long *d_source_vector){
+    
+    unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if ((id < ceil((double)batch_size))){
+        unsigned long source_vertex = device_binary_search(d_csr_offset, id, vertex_size + 1);
+
+        unsigned long target_vertex = d_csr_edges[id];
+
+        if (target_vertex != INFTY){
+            unsigned long source_degree_edge_block_count = device_vertex_dictionary->edge_block_count[source_vertex];
+
+            for (unsigned long z = 0; z < source_degree_edge_block_count; z++){
+                unsigned long bit_string = bit_string_lookup[z];
+                EdgeBlock *root = device_vertex_dictionary->edge_block_address[source_vertex];
+
+                root = traverse_bit_string(root, bit_string);
+
+                if ((root == NULL)){
+                    printf("null hit at id=%lu, source_vertex=%lu, target_vertex=%lu, edge_block_count=%lu, counter=%lu, at GV=%lu\n", id, source_vertex, target_vertex, source_degree_edge_block_count, z, device_vertex_dictionary->edge_block_count[source_vertex]);
+                   
+                }
+
+                for (unsigned long i = 0; i < EDGE_BLOCK_SIZE; i++){
+
+                    if (root->edge_block_entry[i].destination_vertex == 0)
+                        break;
+                    else {
+                        if ((root->edge_block_entry[i].destination_vertex == target_vertex)) {
+                            root->edge_block_entry[i].destination_vertex = INFTY;
+                            // device_vertex_dictionary->active_edge_count[source_vertex]--;
+                            atomicDec(&(device_vertex_dictionary->active_edge_count[source_vertex]), INFTY);
+                            // root->active_edge_count--;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

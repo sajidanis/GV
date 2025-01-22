@@ -48,6 +48,13 @@ int main(int argc, char **argv){
             profiler.start("Generate Random Batch");
             csr->generate_random_batch(BATCH_SIZE, kk);
             profiler.stop("Generate Random Batch");
+
+            printHostVector("CSR Offset of Batch Data", csr->get_csr_offset());
+            printHostVector("CSR Edges of Batch Data", csr->get_csr_edges());
+            printHostVector("Source Degrees", csr->get_source_degree());
+
+            dynGraph->batchInsert(csr);
+
             break;
         case 3:
             // Vertex Insert and Delete performance benchmark

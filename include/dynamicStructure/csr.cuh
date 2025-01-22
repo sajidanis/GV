@@ -25,6 +25,7 @@ public:
     static GraphProperties* h_graph_prop;
 
     thrust::host_vector<unsigned long> get_source_degree();
+    thrust::host_vector<unsigned long> get_source_degree_new();
     thrust::host_vector<unsigned long> get_csr_offset();
     thrust::host_vector<unsigned long> get_csr_edges();
 

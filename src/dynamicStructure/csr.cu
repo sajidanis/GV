@@ -11,6 +11,8 @@ void CSR::readGraph(char * fileLocation) {
     computeGraphProperties();
     initializeCSR();
     profiler.stop("Read Graph");
+
+    std::cout << "[+] CSR initialization completed\n";
 }
 
 // Compute graph properties
@@ -77,7 +79,7 @@ void CSR::initializeCSR() {
 
 void CSR::generate_random_batch(size_t batch_size, size_t batch_number){
     unsigned long vertex_size = h_graph_prop->xDim;
-
+    h_graph_prop->batch_size = batch_size;
     thrust::fill(h_source_degrees.begin(), h_source_degrees.begin() + vertex_size, 0);
 
     h_source.resize(batch_size);
@@ -134,4 +136,8 @@ thrust::host_vector<unsigned long> CSR::get_csr_offset()
 thrust::host_vector<unsigned long> CSR::get_csr_edges()
 {
     return h_csr_edges_new;
+}
+
+thrust::host_vector<unsigned long> CSR::get_source_degree_new(){
+    return h_source_degrees_new;
 }

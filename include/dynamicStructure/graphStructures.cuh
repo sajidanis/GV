@@ -22,79 +22,82 @@ struct Edge {
     // unsigned long timestamp;
 };
 
+struct EdgeBlock {
+    Edge edge_block_entry[EDGE_BLOCK_SIZE]; // instead of an array we need to change it to hashmap kind of structure
+    unsigned short active_edge_count;
+    EdgeBlock *lptr;
+    EdgeBlock *rptr;
+    EdgeBlock *level_order_predecessor;
+};
+
+/** 
 // struct EdgeBlock {
-//     Edge edge_block_entry[EDGE_BLOCK_SIZE]; // instead of an array we need to change it to hashmap kind of structure
-//     unsigned short active_edge_count;
-//     EdgeBlock *lptr;
-//     EdgeBlock *rptr;
+//     int keys[HASH_MAP_SIZE];  // Array for storing keys (e.g., hashed edge identifiers)
+//     Edge values[HASH_MAP_SIZE]; // Array for storing edge values
+//     unsigned short active_edge_count; // Tracks the number of active edges
+//     EdgeBlock *lptr;  // Pointer to the left block
+//     EdgeBlock *rptr;  // Pointer to the right block
 //     EdgeBlock *level_order_predecessor;
+
+//     __device__ int hashFunction(int key) const {
+//         // Simple modulo hash function
+//         return key & (HASH_MAP_SIZE - 1); // Efficient when HASH_MAP_SIZE is a power of 2
+//     }
+
+//     __device__ bool insert(int key, const Edge &value) {
+//         int index = hashFunction(key);
+//         for (int i = 0; i < HASH_MAP_SIZE; ++i) {
+//             int probeIndex = (index + i) & (HASH_MAP_SIZE - 1); // Linear probing
+//             if (keys[probeIndex] == -1 || keys[probeIndex] == key) {
+//                 keys[probeIndex] = key;
+//                 values[probeIndex] = value;
+//                 ++active_edge_count;
+//                 return true;
+//             }
+//         }
+//         return false; // Hashmap is full
+//     }
+
+//     __device__ Edge* lookup(int key) {
+//         int index = hashFunction(key);
+//         for (int i = 0; i < HASH_MAP_SIZE; ++i) {
+//             int probeIndex = (index + i) & (HASH_MAP_SIZE - 1); // Linear probing
+//             if (keys[probeIndex] == -1) {
+//                 return nullptr; // Key not found
+//             }
+//             if (keys[probeIndex] == key) {
+//                 return &values[probeIndex]; // Key found
+//             }
+//         }
+//         return nullptr; // Key not found
+//     }
+
+//     __device__ bool remove(int key) {
+//         int index = hashFunction(key);
+//         for (int i = 0; i < HASH_MAP_SIZE; ++i) {
+//             int probeIndex = (index + i) & (HASH_MAP_SIZE - 1); // Linear probing
+//             if (keys[probeIndex] == -1) {
+//                 return false; // Key not found
+//             }
+//             if (keys[probeIndex] == key) {
+//                 keys[probeIndex] = -1; // Mark as deleted
+//                 --active_edge_count;
+//                 return true;
+//             }
+//         }
+//         return false; // Key not found
+//     }
+
+//     // Initialize the hashmap
+//     __device__ void initialize() {
+//         for (int i = 0; i < HASH_MAP_SIZE; ++i) {
+//             keys[i] = -1; // Use -1 to represent an empty slot
+//         }
+//         active_edge_count = 0;
+//     }
 // };
 
-struct EdgeBlock {
-    int keys[HASH_MAP_SIZE];  // Array for storing keys (e.g., hashed edge identifiers)
-    Edge values[HASH_MAP_SIZE]; // Array for storing edge values
-    unsigned short active_edge_count; // Tracks the number of active edges
-    EdgeBlock *lptr;  // Pointer to the left block
-    EdgeBlock *rptr;  // Pointer to the right block
-    EdgeBlock *level_order_predecessor;
-
-    __device__ int hashFunction(int key) const {
-        // Simple modulo hash function
-        return key & (HASH_MAP_SIZE - 1); // Efficient when HASH_MAP_SIZE is a power of 2
-    }
-
-    __device__ bool insert(int key, const Edge &value) {
-        int index = hashFunction(key);
-        for (int i = 0; i < HASH_MAP_SIZE; ++i) {
-            int probeIndex = (index + i) & (HASH_MAP_SIZE - 1); // Linear probing
-            if (keys[probeIndex] == -1 || keys[probeIndex] == key) {
-                keys[probeIndex] = key;
-                values[probeIndex] = value;
-                ++active_edge_count;
-                return true;
-            }
-        }
-        return false; // Hashmap is full
-    }
-
-    __device__ Edge* lookup(int key) {
-        int index = hashFunction(key);
-        for (int i = 0; i < HASH_MAP_SIZE; ++i) {
-            int probeIndex = (index + i) & (HASH_MAP_SIZE - 1); // Linear probing
-            if (keys[probeIndex] == -1) {
-                return nullptr; // Key not found
-            }
-            if (keys[probeIndex] == key) {
-                return &values[probeIndex]; // Key found
-            }
-        }
-        return nullptr; // Key not found
-    }
-
-    __device__ bool remove(int key) {
-        int index = hashFunction(key);
-        for (int i = 0; i < HASH_MAP_SIZE; ++i) {
-            int probeIndex = (index + i) & (HASH_MAP_SIZE - 1); // Linear probing
-            if (keys[probeIndex] == -1) {
-                return false; // Key not found
-            }
-            if (keys[probeIndex] == key) {
-                keys[probeIndex] = -1; // Mark as deleted
-                --active_edge_count;
-                return true;
-            }
-        }
-        return false; // Key not found
-    }
-
-    // Initialize the hashmap
-    __device__ void initialize() {
-        for (int i = 0; i < HASH_MAP_SIZE; ++i) {
-            keys[i] = -1; // Use -1 to represent an empty slot
-        }
-        active_edge_count = 0;
-    }
-};
+*/
 
 struct EdgePreallocatedQueue{
     long front;

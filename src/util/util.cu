@@ -12,7 +12,30 @@ void printHostVector(const std::string name, const thrust::host_vector<T> &vec){
     std::cout << "\n";
 }
 
+__global__ void printDeviceVectorKernel(const unsigned long* d_vec, size_t size) {
+    for(int i = 0 ; i < size; i++){
+        printf(" %lu ", d_vec[i]);
+    }
+}
+
+template<typename T>
+void printDeviceVector(const std::string name, const thrust::device_vector<T>& d_vec) {
+    size_t size = d_vec.size() >= 40 ? 40 : d_vec.size();
+    std::cout <<"[" << name << "] -> ";
+    // Launch kernel to print device vector
+    const unsigned long* d_vec_ptr = thrust::raw_pointer_cast(d_vec.data());
+
+    // Call the kernel
+    printDeviceVectorKernel<<<1, 1>>>(d_vec_ptr, size);
+
+    // Synchronize to ensure all prints are complete
+    cudaDeviceSynchronize();
+
+    std::cout << "\n";
+}
+
 template void printHostVector<unsigned long>(const std::string name, const thrust::host_vector<unsigned long> &vec);
+template void printDeviceVector<unsigned long>(const std::string name, const thrust::device_vector<unsigned long> &d_vec);
 
 unsigned long computeNearestPowerOf2(unsigned long num){
     if (num == 0) return 1; // Handle the case where n is 0, since 0 doesn't have a meaningful power of two ceiling.

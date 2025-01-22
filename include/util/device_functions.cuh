@@ -13,4 +13,6 @@ __device__ EdgeBlock *pop_edge_block_address(unsigned long pop_count, unsigned l
 
 __device__ void insert_edge_block_to_CBT_v2(EdgeBlock *root, unsigned long bit_string, unsigned long length, EdgeBlock *new_block, EdgeBlock *last_insert_edge_block, unsigned long batch_index_counter, unsigned long global_index_counter, unsigned long current_edge_block_count, unsigned long total_edge_blocks_new, unsigned long source_vertex, unsigned long id);
 
+__device__ EdgeBlock *traverse_bit_string(EdgeBlock *root, unsigned long bit_string);
+
 #endif

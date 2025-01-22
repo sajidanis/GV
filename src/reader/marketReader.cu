@@ -3,7 +3,7 @@
 void readFile(char *fileLoc, GraphProperties *h_graph_prop, thrust::host_vector<unsigned long> &h_source, thrust::host_vector<unsigned long> &h_destination, thrust::host_vector<unsigned long> &h_source_degrees, unsigned long type) {
 
     FILE *ptr;
-    char buff[100];
+    char buff[600];
     ptr = fopen(fileLoc, "a+");
 
     if (NULL == ptr)

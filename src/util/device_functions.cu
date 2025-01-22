@@ -82,3 +82,17 @@ __device__ void insert_edge_block_to_CBT_v2(EdgeBlock *root, unsigned long bit_s
         new_block->rptr = NULL;
     }
 }
+
+__device__ EdgeBlock *traverse_bit_string(EdgeBlock *root, unsigned long bit_string) {
+
+    EdgeBlock *curr = root;
+
+    for (; bit_string > 0; bit_string /= 10){
+        if (bit_string % 2)
+            curr = curr->lptr;
+        else
+            curr = curr->rptr;
+    }
+
+    return curr;
+}
