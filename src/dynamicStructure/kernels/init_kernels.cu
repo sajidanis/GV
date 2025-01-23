@@ -52,3 +52,38 @@ __global__ void parallel_vertex_dictionary_init_v1(unsigned long vertex_size, Ve
     }
 
 }
+
+__global__ void printVertexDictionaryKernel(const VertexDictionary *d_vertex_dict, size_t vertex_size) {
+
+   for(size_t idx = 0; idx < vertex_size; idx++) {
+        // Print vertex_id for the specific vertex
+        printf("Vertex[%lu]:\n", idx);
+        printf("\tvertex_id: %lu\n", d_vertex_dict->vertex_id[idx]);
+        printf("\tedge_block_count: %lu\n", d_vertex_dict->edge_block_count[idx]);
+        printf("\tactive_edge_count: %u\n", d_vertex_dict->active_edge_count[idx]);
+        printf("\tlast_insert_edge_offset: %lu\n", d_vertex_dict->last_insert_edge_offset[idx]);
+        printf("\tlast_insert_edge_block address: %p\n", (void*)d_vertex_dict->last_insert_edge_block[idx]);
+        printf("\tedge_block_address: %p\n", (void*)d_vertex_dict->edge_block_address[idx]);
+        printf("\n");
+    }
+}
+
+__global__ void printEdgeBlockQueue(EdgeBlock **d_queue_edge_block_address, size_t queue_size) {
+
+    for(int i = 0 ; i < queue_size; i++) {
+        EdgeBlock *block = d_queue_edge_block_address[i];
+
+        if (block != NULL) {
+            printf("EdgeBlock[%lu] -> ", i);
+
+            // Print edge block entries
+            for (unsigned long j = 0; j < EDGE_BLOCK_SIZE; j++) {
+                printf(" %lu ", block->edge_block_entry[j].destination_vertex);
+            }
+            printf("\n");
+            // Add more fields to print if needed
+        } else {
+            printf("EdgeBlock[%lu]: NULL\n", i);
+        }
+    }
+}

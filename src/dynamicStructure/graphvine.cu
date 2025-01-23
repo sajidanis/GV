@@ -54,7 +54,7 @@ void GraphVine::initiateVertexDictionary() {
 
     cudaMalloc(&d_active_edge_count_VD, vertexDictionarySize * sizeof(unsigned int));
 
-    cudaMalloc(reinterpret_cast<void**>(&d_last_insert_edge_block), 2 * vertexDictionarySize * sizeof(EdgeBlock *));
+    cudaMalloc((EdgeBlock **)&d_last_insert_edge_block, 2 * vertexDictionarySize * sizeof(EdgeBlock *));
    
     d_edge_block_address = d_last_insert_edge_block + vertexDictionarySize;
     
@@ -73,10 +73,11 @@ void GraphVine::initiateVertexDictionary() {
 
 
     // push the edgeblock to the device and set up the queue
-
     unsigned long thread_blocks = ceil(double(edge_block_count_device) / THREADS_PER_BLOCK);
 
     parallel_push_edge_preallocate_list_to_device_queue<<<thread_blocks, THREADS_PER_BLOCK>>>(device_edge_block, edge_block_count_device, edge_block_count_device);
+
+    // printEdgeBlockQueue<<<1, 1>>>(d_queue_edge_block_address, edge_block_count_device);
 
     parallel_push_queue_update<<<1, 1>>>(edge_block_count_device);
 
@@ -98,7 +99,7 @@ void GraphVine::initiateEdgeBlocks(){
 
     for (unsigned long i = 0; i < vertexSize; i++){
         // unsigned long edge_blocks = ceil(double(source_degrees[i]) / EDGE_BLOCK_SIZE);
-        unsigned long edge_blocks = (source_degrees[i] + EDGE_BLOCK_SIZE) / EDGE_BLOCK_SIZE;
+        unsigned long edge_blocks = (source_degrees[i] + EDGE_BLOCK_SIZE - 1) / EDGE_BLOCK_SIZE;
         h_edge_blocks_count_init[i] = edge_blocks;
         total_edge_blocks_count_init += edge_blocks;
     }
@@ -111,8 +112,8 @@ void GraphVine::initiateEdgeBlocks(){
     cudaDeviceSynchronize();
 
     // cudaMalloc((struct edge_block**)&device_edge_block, total_edge_blocks_count_init * sizeof(struct edge_block));
-    cudaMalloc((struct edge_block **)&device_edge_block, edge_block_count_device * sizeof(EdgeBlock));
-    cudaMalloc((struct edge_block **)&d_queue_edge_block_address, edge_block_count_device * sizeof(EdgeBlock *));
+    cudaMalloc((EdgeBlock **)&device_edge_block, edge_block_count_device * sizeof(EdgeBlock));
+    cudaMalloc((EdgeBlock **)&d_queue_edge_block_address, edge_block_count_device * sizeof(EdgeBlock *));
 
     // cudaMalloc((struct edge_block**)&device_edge_block, 2 * total_edge_blocks_count_init * sizeof(struct edge_block));
     cudaDeviceSynchronize();
@@ -132,6 +133,10 @@ void GraphVine::initiateDeviceVectors(){
     d_source_vector = thrust::device_vector<unsigned long>(vertex_size + 1);
     d_source_vector_1 = thrust::device_vector<unsigned long> (1);
     d_thread_count_vector = thrust::device_vector<unsigned long> (vertex_size + 1);
+
+    if (edge_size < BATCH_SIZE) {
+        d_csr_edges_new.resize(BATCH_SIZE);
+    }
 
 
     // Pointer cast for GPU handling
@@ -157,11 +162,30 @@ void GraphVine::copyGraphDataFromHostToDevice(){
 }
 
 void GraphVine::bulkBuild(){
-    std::cout << "Bulk build real graph now" << std::endl;
-    unsigned long insert_load_factor_VC = 2;
 
     size_t edge_size = CSR::h_graph_prop->total_edges;
     size_t vertex_size = CSR::h_graph_prop->xDim;
+
+    size_t thread_blocks = ceil(double(edge_size) / THREADS_PER_BLOCK);
+    device_remove_batch_duplicates<<<thread_blocks, THREADS_PER_BLOCK>>>(vertex_size, edge_size, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_source_degrees_new_pointer);
+    cudaDeviceSynchronize();
+
+    thread_blocks = ceil(double(vertex_size) / THREADS_PER_BLOCK);
+    device_update_source_degrees<<<thread_blocks, THREADS_PER_BLOCK>>>(vertex_size, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_source_degrees_new_pointer);
+
+    thread_blocks = ceil(double(vertex_size) / THREADS_PER_BLOCK);
+    device_insert_preprocessing<<<thread_blocks, THREADS_PER_BLOCK>>>(d_vertexDictionary, vertex_size, d_csr_offset_new_pointer, d_csr_edges_new_pointer, edge_size, d_source_degrees_new_pointer, 0, d_edge_blocks_count_pointer);
+    cudaDeviceSynchronize();
+
+    thrust::exclusive_scan(d_edge_blocks_count.begin(), d_edge_blocks_count.begin() + vertex_size + 1, d_prefix_sum_edge_blocks_new.begin());
+
+    cudaDeviceSynchronize();
+
+    cudaMemcpy(&total_edge_blocks_count_batch, d_prefix_sum_edge_blocks_new_pointer + vertex_size, sizeof(unsigned long), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+
+    std::cout << "Bulk build real graph now" << std::endl;
+    unsigned long insert_load_factor_VC = 2;
 
     unsigned long start_index = 0;
     unsigned long end_index = edge_size;
@@ -170,12 +194,11 @@ void GraphVine::bulkBuild(){
 
     unsigned long current_batch = end_index - start_index;
 
-    size_t thread_blocks = ceil(double(edge_size) / THREADS_PER_BLOCK);
-
-
-    cudaMemcpy(&total_edge_blocks_count_batch, d_prefix_sum_edge_blocks_new_pointer + vertex_size, sizeof(unsigned long), cudaMemcpyDeviceToHost);
+    thread_blocks = ceil(double(edge_size) / THREADS_PER_BLOCK);
 
     batched_edge_inserts_EC<<<thread_blocks, THREADS_PER_BLOCK>>>(device_edge_block, d_edge_blocks_count_pointer, total_edge_blocks_count_batch, vertex_size, edge_size, d_prefix_sum_edge_blocks_new_pointer, thread_blocks, d_vertexDictionary, 0, edge_size, start_index, end_index, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_source_degrees_new_pointer);
+
+    cudaDeviceSynchronize();
 
     batched_edge_inserts_EC_postprocessing<<<thread_blocks, THREADS_PER_BLOCK>>>(d_vertexDictionary, vertex_size, edge_size, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_source_degrees_new_pointer, d_prefix_sum_edge_blocks_new_pointer, 0);
 
@@ -184,7 +207,7 @@ void GraphVine::bulkBuild(){
     cudaDeviceSynchronize();
 }
 
-void GraphVine::batchInsert(CSR *csr) {
+void GraphVine::batchInsert(CSR *csr, size_t kk) {
 
     auto &profiler = Profiler::getInstance();
 
@@ -192,29 +215,17 @@ void GraphVine::batchInsert(CSR *csr) {
     auto h_csr_edges_new = csr->get_csr_edges();
     auto h_source_degrees = csr->get_source_degree();
 
-    // auto h_source_degrees_new = csr->get_source_degree_new();
-
-    // Ensure device vectors are correctly sized
-    if (d_csr_offset_new.size() != h_csr_offset_new.size()) {
-        d_csr_offset_new.resize(h_csr_offset_new.size());
-        d_csr_offset_new_pointer = thrust::raw_pointer_cast(d_csr_offset_new.data());
-    }
-    if (d_csr_edges_new.size() != h_csr_edges_new.size()) {
-        d_csr_edges_new.resize(h_csr_edges_new.size());
-        d_csr_edges_new_pointer = thrust::raw_pointer_cast(d_csr_edges_new.data());
-    }
-    if (d_source_degrees_new.size() != h_source_degrees.size()) {
-        d_source_degrees_new.resize(h_source_degrees.size());
-        d_source_degrees_new_pointer = thrust::raw_pointer_cast(d_source_degrees_new.data());
-        // h_source_degrees_new.resize(h_source_degrees.size());
-    }
+    auto edge_size = csr->h_graph_prop->total_edges;
 
     auto vertex_size = csr->h_graph_prop->xDim;
     auto batch_size = csr->h_graph_prop->batch_size;
 
     thrust::copy(h_csr_offset_new.begin(), h_csr_offset_new.end(), d_csr_offset_new.begin());
+
     thrust::copy(h_csr_edges_new.begin(), h_csr_edges_new.end(), d_csr_edges_new.begin());
+
     thrust::copy(h_source_degrees.begin(), h_source_degrees.end(), d_source_degrees_new.begin());
+
 
     cudaDeviceSynchronize();
 
@@ -255,9 +266,6 @@ void GraphVine::batchInsert(CSR *csr) {
     std::cout << "Max degree of batch is " << max_degree_batch << std::endl;
     std::cout << "Average degree of batch is " << sum_degree_batch / vertex_size << std::endl;
 
-    profiler.stop("BATCH DUPLICATION");
-
-
     if ((EDGE_BLOCK_SIZE > 40) && (BATCH_SIZE <= 10000000)) {
 
         unsigned long thread_count_EBC;
@@ -280,13 +288,59 @@ void GraphVine::batchInsert(CSR *csr) {
         thread_blocks = ceil(double(thread_count_EBC) / THREADS_PER_BLOCK);
 
         batched_delete_kernel_EC_LD<<<thread_blocks, THREADS_PER_BLOCK>>>(d_vertexDictionary, vertex_size, batch_size, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_prefix_sum_edge_blocks_new_pointer, d_source_vector_pointer);
+
     } else {
         thread_blocks = ceil(double(batch_size) / THREADS_PER_BLOCK);
 
         batched_delete_kernel_EC_HD<<<thread_blocks, THREADS_PER_BLOCK>>>(d_vertexDictionary, vertex_size, batch_size, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_prefix_sum_edge_blocks_new_pointer, d_source_vector_pointer);
     }
 
+    profiler.stop("BATCH DUPLICATION");
 
+    thread_blocks = ceil(double(vertex_size) / THREADS_PER_BLOCK);
+
+    device_insert_preprocessing<<<thread_blocks, THREADS_PER_BLOCK>>>(d_vertexDictionary, vertex_size, d_csr_offset_new_pointer, d_csr_edges_new_pointer, batch_size, d_source_degrees_new_pointer, 1, d_edge_blocks_count_pointer);
+
+    cudaDeviceSynchronize();
+    
+    thrust::exclusive_scan(d_edge_blocks_count.begin(), d_edge_blocks_count.begin() + vertex_size + 1, d_prefix_sum_edge_blocks_new.begin());
+    cudaDeviceSynchronize();
+
+    cudaMemcpy(&total_edge_blocks_count_batch, d_prefix_sum_edge_blocks_new_pointer + vertex_size, sizeof(unsigned long), cudaMemcpyDeviceToHost);
+
+    thrust::copy(d_source_degrees_new.begin(), d_source_degrees_new.end(), h_source_degrees_new.begin());
+    cudaDeviceSynchronize();
+
+    unsigned long start_index = 0;
+
+    unsigned long remaining_edges = edge_size - start_index;
+
+    unsigned long end_index = 0;
+
+    if (remaining_edges > batch_size)
+        end_index = batch_size;
+    else
+        end_index = batch_size;
+
+    unsigned long current_batch = end_index - start_index;
+
+    std::cout << "Current batch is " << current_batch << std::endl;
+
+    // cudaDeviceSynchronize();
+    // vd_time = clock() - vd_time;
+    std::cout << "Checkpoint" << std::endl;
+
+    thread_blocks = ceil(double(batch_size) / THREADS_PER_BLOCK);
+
+    batched_edge_inserts_EC<<<thread_blocks, THREADS_PER_BLOCK>>>(device_edge_block, d_edge_blocks_count_pointer, total_edge_blocks_count_batch, vertex_size, edge_size, d_prefix_sum_edge_blocks_new_pointer, thread_blocks, d_vertexDictionary, kk, batch_size, start_index, end_index, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_source_degrees_new_pointer);
+
+    batched_edge_inserts_EC_postprocessing<<<thread_blocks, THREADS_PER_BLOCK>>>(d_vertexDictionary, vertex_size, batch_size, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_source_degrees_new_pointer, d_prefix_sum_edge_blocks_new_pointer, kk);
+
+    update_edge_queue<<<1, 1>>>(total_edge_blocks_count_batch);
+
+
+    cudaDeviceSynchronize();
+    std::cout << "Batched insert done" << std::endl;
 }
 
 unsigned long GraphVine::get_edge_block_count_device(){
@@ -316,5 +370,16 @@ unsigned long GraphVine::get_edge_block_count_device(){
     return edge_blocks_possible;
 }
 
+VertexDictionary *GraphVine::getVertexDictionary() {
+    return d_vertexDictionary;
+}
+
+unsigned long* GraphVine::getSourceVectorPointer() {
+    return d_source_vector_pointer;
+}
+
+unsigned long GraphVine::getVertexSize() {
+    return CSR::h_graph_prop->xDim;
+}
 
 // 

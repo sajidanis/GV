@@ -1,16 +1,13 @@
 #include "insert_kernels.cuh"
 
-__global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsigned long *d_edge_blocks_count_init, unsigned long total_edge_blocks_count_batch, unsigned long vertex_size, unsigned long edge_size, unsigned long *d_prefix_sum_edge_blocks, unsigned long thread_blocks, VertexDictionary *device_vertex_dictionary, unsigned long batch_number, unsigned long batch_size, unsigned long start_index_batch, unsigned long end_index_batch, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_source_degrees)
-{
+__global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsigned long *d_edge_blocks_count_init, unsigned long total_edge_blocks_count_batch, unsigned long vertex_size, unsigned long edge_size, unsigned long *d_prefix_sum_edge_blocks, unsigned long thread_blocks, VertexDictionary *device_vertex_dictionary, unsigned long batch_number, unsigned long batch_size, unsigned long start_index_batch, unsigned long end_index_batch, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_source_degrees) {
 
     unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (id < batch_size)
-    {
+    if (id < batch_size) {
         unsigned long target_vertex = d_csr_edges[id];
 
-        if (target_vertex != INFTY)
-        {
+        if (target_vertex != INFTY) {
 
             unsigned long source_vertex = device_binary_search(d_csr_offset, id, vertex_size);
             unsigned long active_edge_block_count = device_vertex_dictionary->edge_block_count[source_vertex];
@@ -19,21 +16,15 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
             EdgeBlock *root = NULL;
             EdgeBlock *base = NULL;
 
-            if ((device_vertex_dictionary->edge_block_address[source_vertex] == NULL) || (batch_number == 0))
-            {
+            if ((device_vertex_dictionary->edge_block_address[source_vertex] == NULL) || (batch_number == 0)) {
 
-                if (new_edge_block_count > 0)
-                {
-
+                if (new_edge_block_count > 0) {
                     unsigned long index_counter = id - d_csr_offset[source_vertex];
                     unsigned long current_edge_block_counter = (index_counter / EDGE_BLOCK_SIZE);
                     base = pop_edge_block_address(total_edge_blocks_count_batch, d_prefix_sum_edge_blocks, source_vertex);
                     root = base + current_edge_block_counter;
                     
-                    if (!(index_counter % EDGE_BLOCK_SIZE))
-                    {
-
-
+                    if (!(index_counter % EDGE_BLOCK_SIZE)) {
                         unsigned long global_index_counter = active_edge_block_count + current_edge_block_counter;
                         unsigned long length = 0;
                 
@@ -52,8 +43,7 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
             }
 
             // below else is taken if it's the subsequent batch insert to an adjacency
-            else if ((device_vertex_dictionary->edge_block_address[source_vertex] != NULL) && (batch_number))
-            {
+            else if ((device_vertex_dictionary->edge_block_address[source_vertex] != NULL) && (batch_number)) {
                 unsigned long last_insert_edge_offset = device_vertex_dictionary->last_insert_edge_offset[source_vertex];
                 unsigned long space_remaining = 0;
                 if (last_insert_edge_offset != 0)
@@ -61,8 +51,7 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
                 unsigned long index_counter = id - d_csr_offset[source_vertex];
 
                 // fill up newly allocated edge_blocks
-                if (((index_counter >= space_remaining)) && (new_edge_block_count > 0))
-                {
+                if (((index_counter >= space_remaining)) && (new_edge_block_count > 0)) {
 
                     index_counter -= space_remaining;
 
@@ -71,8 +60,7 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
                     base = pop_edge_block_address(total_edge_blocks_count_batch, d_prefix_sum_edge_blocks, source_vertex);
                     root = base + current_edge_block_counter;
 
-                    if (!(index_counter % EDGE_BLOCK_SIZE))
-                    {
+                    if (!(index_counter % EDGE_BLOCK_SIZE)) {
 
                         unsigned long global_index_counter = active_edge_block_count + current_edge_block_counter;
                         unsigned long length = 0;
@@ -88,16 +76,11 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
                 }
 
                 // fill up remaining space in last_insert_edge_block
-                else
-                {
-
-                    if ((index_counter < space_remaining) && (space_remaining != EDGE_BLOCK_SIZE))
-                    {
-
+                else {
+                    if ((index_counter < space_remaining) && (space_remaining != EDGE_BLOCK_SIZE)) {
                         // traverse to last insert edge block
                         unsigned long edge_entry_index = index_counter + last_insert_edge_offset;
                         device_vertex_dictionary->last_insert_edge_block[source_vertex]->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
-
                         return;
                     }
                 }
@@ -317,5 +300,37 @@ __global__ void batched_delete_kernel_EC_HD(VertexDictionary *device_vertex_dict
                 }
             }
         }
+    }
+}
+
+__global__ void device_insert_preprocessing(VertexDictionary *device_vertex_dictionary, unsigned long vertex_size, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long batch_size, unsigned long *d_source_degrees, unsigned long batch_number, unsigned long *d_edge_blocks_count)
+{
+    unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (id < vertex_size) {
+        if (d_source_degrees[id]) {
+            unsigned long last_insert_edge_offset = device_vertex_dictionary->last_insert_edge_offset[id];
+            unsigned long space_remaining = 0;
+            if (last_insert_edge_offset)
+                space_remaining = EDGE_BLOCK_SIZE - last_insert_edge_offset;
+
+            unsigned long edge_blocks;
+            if (batch_number != 0) {
+                if (space_remaining == 0) {
+                    edge_blocks = ceil(double(d_source_degrees[id]) / EDGE_BLOCK_SIZE);
+                }
+                else if (d_source_degrees[id] >= space_remaining) {
+                    edge_blocks = ceil(double(d_source_degrees[id] - space_remaining) / EDGE_BLOCK_SIZE);
+                }
+                else {
+                    edge_blocks = 0;
+                }
+            }
+            else {
+                edge_blocks = ceil(double(d_source_degrees[id]) / EDGE_BLOCK_SIZE);
+            }
+            d_edge_blocks_count[id] = edge_blocks;
+        } else
+            d_edge_blocks_count[id] = 0;
     }
 }

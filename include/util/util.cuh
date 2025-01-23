@@ -3,6 +3,8 @@
 
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
+#include <cuda/std/type_traits>
+
 
 template<typename T>
 void printHostVector(const std::string name, const thrust::host_vector<T> &vec);

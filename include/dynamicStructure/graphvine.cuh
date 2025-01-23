@@ -34,9 +34,13 @@ public:
 
     void bulkBuild();
 
-    void batchInsert(CSR *csr);
+    void batchInsert(CSR *csr, size_t kk);
 
     void copyGraphDataFromHostToDevice();
+
+    VertexDictionary* getVertexDictionary();
+    unsigned long* getSourceVectorPointer();
+    unsigned long getVertexSize();
 
 private:
     

@@ -10,6 +10,7 @@
 #include "profiler.cuh"
 #include "graphvine.cuh"
 #include "csr.cuh"
+#include "pagerank.cuh"
 
 
 int main(int argc, char **argv){
@@ -49,11 +50,7 @@ int main(int argc, char **argv){
             csr->generate_random_batch(BATCH_SIZE, kk);
             profiler.stop("Generate Random Batch");
 
-            printHostVector("CSR Offset of Batch Data", csr->get_csr_offset());
-            printHostVector("CSR Edges of Batch Data", csr->get_csr_edges());
-            printHostVector("Source Degrees", csr->get_source_degree());
-
-            dynGraph->batchInsert(csr);
+            dynGraph->batchInsert(csr, kk);
 
             break;
         case 3:
@@ -63,6 +60,9 @@ int main(int argc, char **argv){
             std::cerr << "Invalid choice" << std::endl;
             break;
     }
+
+    // Run Page rank algorithm
+    static_pagerank(dynGraph, 0.85, 0.0001, 100);
 
     return 0;
 }
