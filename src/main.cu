@@ -30,14 +30,24 @@ int main(int argc, char **argv){
 
     // Give options to run benchmarks and applications
     // Insertion type operations
+    size_t kk = 0;
+
+    size_t vertex_size = CSR::h_graph_prop->xDim;
+
+    std::cout << "Starting Page Rank algorithm in main" << std::endl;
+
+    thrust::device_vector<float> d_pageRankVector_1(vertex_size);
+    thrust::device_vector<float> d_pageRankVector_2(vertex_size);
+
+    // Run PR
+    static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+
     int choice;
     std::cout << "Enter type of insertion required" << std::endl
               << "1. Regular batched edge insertion" << std::endl
               << "2. Edge Insert and Delete performance benchmark" << std::endl
               << "3. Vertex Insert and Delete performance benchmark" << std::endl;
     std::cin >> choice;
-
-    size_t kk = 0;
 
     switch (choice) {
         case 1:
@@ -52,6 +62,10 @@ int main(int argc, char **argv){
 
             dynGraph->batchInsert(csr, kk);
 
+            dynamic_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+
+            static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+
             break;
         case 3:
             // Vertex Insert and Delete performance benchmark
@@ -62,7 +76,7 @@ int main(int argc, char **argv){
     }
 
     // Run Page rank algorithm
-    static_pagerank(dynGraph, 0.85, 0.0001, 100);
+    
 
     return 0;
 }

@@ -40,6 +40,7 @@ public:
 
     VertexDictionary* getVertexDictionary();
     unsigned long* getSourceVectorPointer();
+    unsigned long* getAffectedNodesPointer();
     unsigned long getVertexSize();
 
 private:

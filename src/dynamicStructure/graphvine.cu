@@ -394,6 +394,10 @@ unsigned long* GraphVine::getSourceVectorPointer() {
     return d_source_vector_pointer;
 }
 
+unsigned long *GraphVine::getAffectedNodesPointer(){
+    return d_affected_nodes_pointer;
+}
+
 unsigned long GraphVine::getVertexSize() {
     return CSR::h_graph_prop->xDim;
 }
