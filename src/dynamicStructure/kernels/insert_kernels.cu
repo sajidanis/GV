@@ -172,6 +172,24 @@ __global__ void device_remove_batch_duplicates(unsigned long vertex_size, unsign
     }
 }
 
+__global__ void find_affected_nodes(unsigned long vertex_size, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_affected_nodes){
+    unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (id < vertex_size){
+        unsigned long start_index = d_csr_offset[id];
+        unsigned long end_index = d_csr_offset[id + 1];
+
+        if (start_index < end_index){
+            d_affected_nodes[id] = 1;
+            for (unsigned long i = start_index; i < end_index; i++){
+                if (d_csr_edges[i] != INFTY){
+                    d_affected_nodes[d_csr_edges[i]] = 1;
+                }
+            }
+        }
+    }
+}
+
 __global__ void device_update_source_degrees(unsigned long vertex_size, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_source_degrees) {
     unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
 

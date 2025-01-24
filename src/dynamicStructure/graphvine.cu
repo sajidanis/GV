@@ -134,6 +134,8 @@ void GraphVine::initiateDeviceVectors(){
     d_source_vector_1 = thrust::device_vector<unsigned long> (1);
     d_thread_count_vector = thrust::device_vector<unsigned long> (vertex_size + 1);
 
+    d_affected_nodes = thrust::device_vector<unsigned long> (vertex_size);
+
     if (edge_size < BATCH_SIZE) {
         d_csr_edges_new.resize(BATCH_SIZE);
     }
@@ -148,6 +150,8 @@ void GraphVine::initiateDeviceVectors(){
 
     d_source_vector_pointer = thrust::raw_pointer_cast(d_source_vector.data());
     d_source_vector_1_pointer = thrust::raw_pointer_cast(d_source_vector_1.data());
+
+    d_affected_nodes_pointer = thrust::raw_pointer_cast(d_affected_nodes.data());
 }
 
 void GraphVine::copyGraphDataFromHostToDevice(){
@@ -296,6 +300,18 @@ void GraphVine::batchInsert(CSR *csr, size_t kk) {
     }
 
     profiler.stop("BATCH DUPLICATION");
+
+    cudaDeviceSynchronize();
+
+    thread_blocks = ceil(double(vertex_size) / THREADS_PER_BLOCK);
+
+    std::cout << "Finding affected nodes" << std::endl;
+
+    find_affected_nodes<<<thread_blocks, THREADS_PER_BLOCK>>>(vertex_size, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_affected_nodes_pointer);
+
+    printDeviceVector("Affected Nodes", d_affected_nodes);
+
+    cudaDeviceSynchronize();
 
     thread_blocks = ceil(double(vertex_size) / THREADS_PER_BLOCK);
 

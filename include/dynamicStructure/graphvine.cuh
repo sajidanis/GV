@@ -70,6 +70,8 @@ private:
     thrust::device_vector<unsigned long> d_source_vector_1;
     thrust::device_vector<unsigned long> d_thread_count_vector;
 
+    thrust::device_vector<unsigned long> d_affected_nodes;
+
     unsigned long total_edge_blocks_count_batch;
 
     unsigned long *d_source_degrees_new_pointer;
@@ -80,6 +82,8 @@ private:
 
     unsigned long *d_source_vector_pointer;
     unsigned long *d_source_vector_1_pointer;
+
+    unsigned long *d_affected_nodes_pointer;
 };
 
 
