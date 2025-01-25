@@ -11,7 +11,7 @@
 #include "graphvine.cuh"
 #include "csr.cuh"
 #include "pagerank.cuh"
-
+#include "tc.cuh"
 
 int main(int argc, char **argv){
     if (argc != 3) {
@@ -39,8 +39,13 @@ int main(int argc, char **argv){
     thrust::device_vector<float> d_pageRankVector_1(vertex_size);
     thrust::device_vector<float> d_pageRankVector_2(vertex_size);
 
+    thrust::device_vector<float> d_triangleCount(vertex_size, 0);
+
     // Run PR
     static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+
+    // Run TC
+    static_tc(dynGraph, d_triangleCount);
 
     int choice;
     std::cout << "Enter type of insertion required" << std::endl

@@ -39,8 +39,14 @@ public:
     void copyGraphDataFromHostToDevice();
 
     VertexDictionary* getVertexDictionary();
+
     unsigned long* getSourceVectorPointer();
     unsigned long* getAffectedNodesPointer();
+
+    unsigned long* getCsrEdgesNewPointer();
+    unsigned long* getSourceDegreesNewPointer();
+    unsigned long* getCsrOffsetNewPointer();
+
     unsigned long getVertexSize();
 
 private:

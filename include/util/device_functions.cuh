@@ -15,4 +15,8 @@ __device__ void insert_edge_block_to_CBT_v2(EdgeBlock *root, unsigned long bit_s
 
 __device__ EdgeBlock *traverse_bit_string(EdgeBlock *root, unsigned long bit_string);
 
+__device__ unsigned long tc_device_binary_search(unsigned long *input_array, unsigned long key, unsigned long size);
+
+__device__ unsigned long long tc_final_device_binary_search(unsigned long *input_array, unsigned long long key, unsigned long long size);
+
 #endif

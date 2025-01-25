@@ -398,6 +398,18 @@ unsigned long *GraphVine::getAffectedNodesPointer(){
     return d_affected_nodes_pointer;
 }
 
+unsigned long *GraphVine::getCsrEdgesNewPointer() {
+    return d_csr_edges_new_pointer;
+}
+
+unsigned long *GraphVine::getSourceDegreesNewPointer() {
+    return d_source_degrees_new_pointer;
+}
+
+unsigned long *GraphVine::getCsrOffsetNewPointer() {
+    return d_csr_offset_new_pointer;
+}
+
 unsigned long GraphVine::getVertexSize() {
     return CSR::h_graph_prop->xDim;
 }

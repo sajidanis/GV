@@ -96,3 +96,56 @@ __device__ EdgeBlock *traverse_bit_string(EdgeBlock *root, unsigned long bit_str
 
     return curr;
 }
+
+__device__ unsigned long tc_device_binary_search(unsigned long *input_array, unsigned long key, unsigned long size) {
+
+    long start = 0;
+    long end = (long)size;
+    long mid;
+
+    while (start <= end) {
+
+        mid = (start + end) / 2;
+
+        unsigned long item = input_array[mid] - 1;
+        if (item == key) {
+            return mid + 1;
+        }
+
+        if (item < key)
+            start = mid + 1;
+        else
+            end = mid - 1;
+    }
+    return start;
+}
+
+__device__ unsigned long long tc_final_device_binary_search(unsigned long *input_array, unsigned long long key, unsigned long long size) {
+    unsigned long start = 0;
+    unsigned long end = size;
+    unsigned long mid;
+
+    while (start <= end) {
+
+        mid = (start + end) / 2;
+
+        unsigned long item = input_array[mid] - 1;
+
+        // Check if x is present at mid
+        if (item == key)
+            return 1;
+
+        // If x greater, ignore left half
+        if (item < key)
+            start = mid + 1;
+
+        // If x is smaller, ignore right half
+        else
+            end = mid - 1;
+    }
+
+    // If we reach here, then element was not present
+    return 0;
+}
+
+
