@@ -28,6 +28,7 @@ add_executable(GraphVine src/main.cu
     src/algorithm/pagerank/pr_kernel.cu
     src/algorithm/tc/tc.cu
     src/algorithm/tc/tc_kernel.cu
+    src/util/gpu.cu
 )
 
 set_target_properties(GraphVine PROPERTIES CUDA_SEPARABLE_COMPILATION ON)

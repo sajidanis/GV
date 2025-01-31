@@ -77,9 +77,9 @@ void GraphVine::initiateVertexDictionary() {
 
     parallel_push_edge_preallocate_list_to_device_queue<<<thread_blocks, THREADS_PER_BLOCK>>>(device_edge_block, edge_block_count_device, edge_block_count_device);
 
-    // printEdgeBlockQueue<<<1, 1>>>(d_queue_edge_block_address, edge_block_count_device);
-
     parallel_push_queue_update<<<1, 1>>>(edge_block_count_device);
+
+    // printEdgeBlockQueue<<<1, 1>>>(d_queue_edge_block_address, edge_block_count_device);
 
     // we need to initiate each vertex id with vertexDictionary internal mapping
     thread_blocks = ceil(double(vertexSize) / THREADS_PER_BLOCK);
@@ -113,7 +113,10 @@ void GraphVine::initiateEdgeBlocks(){
 
     // cudaMalloc((struct edge_block**)&device_edge_block, total_edge_blocks_count_init * sizeof(struct edge_block));
     cudaMalloc((EdgeBlock **)&device_edge_block, edge_block_count_device * sizeof(EdgeBlock));
-    cudaMalloc((EdgeBlock **)&d_queue_edge_block_address, edge_block_count_device * sizeof(EdgeBlock *));
+    cudaMalloc(&d_queue_edge_block_address, edge_block_count_device * sizeof(EdgeBlock *));
+
+    printf("Address of device_edge_block = %p\n", device_edge_block);
+    printf("Address of d_queue_edge_block_address = %p\n", d_queue_edge_block_address);
 
     // cudaMalloc((struct edge_block**)&device_edge_block, 2 * total_edge_blocks_count_init * sizeof(struct edge_block));
     cudaDeviceSynchronize();

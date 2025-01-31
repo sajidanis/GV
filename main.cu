@@ -12,28 +12,12 @@
 #include "csr.cuh"
 #include "pagerank.cuh"
 #include "tc.cuh"
-#include "gpu.cuh"
-
-size_t BATCH_SIZE = 10000000;
 
 int main(int argc, char **argv){
-    if (argc != 4) {
-        std::cerr << "Usage: " << argv[0] << " <market_file>" << " <GPU_ID>" << " <BATCH_SIZE>" << std::endl;
+    if (argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " <market_file>" << " <GPU_ID>" << std::endl;
         return EXIT_FAILURE;
     }
-
-    int gpuId = atoi(argv[2]);
-    if(gpuId == -1){
-        gpuId = selectLeastLoadedGPU();
-    }
-
-    BATCH_SIZE = atoi(argv[3]);
-
-    // set the device to gpuId
-    std::cout << "\n[+] Setting the GPU " << gpuId << "\n";
-    CUDA_CALL(cudaSetDevice(gpuId));
-    // Print statistics regarding GPU DEVICE
-    printDeviceStatistics(gpuId);
 
     auto &profiler = Profiler::getInstance();
 
@@ -50,22 +34,22 @@ int main(int argc, char **argv){
 
     size_t vertex_size = CSR::h_graph_prop->xDim;
 
-    // std::cout << "Starting Page Rank algorithm in main" << std::endl;
+    std::cout << "Starting Page Rank algorithm in main" << std::endl;
 
-    // size_t free_mem, total_mem;
-    // cudaMemGetInfo(&free_mem, &total_mem);
-    // std::cout << "Free memory: " << free_mem << ", Total memory: " << total_mem << std::endl;
-    // std::cout << "Required memory: " << vertex_size * sizeof(float) * 2 << std::endl; // For two vectors
+    size_t free_mem, total_mem;
+    cudaMemGetInfo(&free_mem, &total_mem);
+    std::cout << "Free memory: " << free_mem << ", Total memory: " << total_mem << std::endl;
+    std::cout << "Required memory: " << vertex_size * sizeof(float) * 2 << std::endl; // For two vectors
 
-    // thrust::device_vector<float> d_pageRankVector_1(vertex_size);
-    // thrust::device_vector<float> d_pageRankVector_2(vertex_size);
+    thrust::device_vector<float> d_pageRankVector_1(vertex_size);
+    thrust::device_vector<float> d_pageRankVector_2(vertex_size);
 
-    // // thrust::device_vector<float> d_triangleCount(vertex_size, 0);
+    // thrust::device_vector<float> d_triangleCount(vertex_size, 0);
 
-    // std::cout << "Starting Page Rank algorithm in main" << std::endl;
+    std::cout << "Starting Page Rank algorithm in main" << std::endl;
 
-    // // Run PR
-    // static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+    // Run PR
+    static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
 
     // Run TC
     // static_tc(dynGraph, d_triangleCount);
@@ -90,9 +74,9 @@ int main(int argc, char **argv){
 
             dynGraph->batchInsert(csr, kk);
 
-            // dynamic_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+            dynamic_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
 
-            // static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+            static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
 
             break;
         case 3:

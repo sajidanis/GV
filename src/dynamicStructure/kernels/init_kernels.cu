@@ -16,6 +16,7 @@ __global__ void data_structure_init(VertexDictionary *device_vertex_dictionary, 
     device_vertex_dictionary->edge_block_address = d_edge_block_address;
 
     d_e_queue.edge_block_address = d_queue_edge_block_address;
+    printf("D_Queue_Edge_block address : %p\n", d_queue_edge_block_address);
 }
 
 __global__ void parallel_push_edge_preallocate_list_to_device_queue(EdgeBlock *d_edge_preallocate_list, unsigned long total_edge_blocks_count_init, unsigned long device_edge_block_capacity) {
@@ -24,11 +25,14 @@ __global__ void parallel_push_edge_preallocate_list_to_device_queue(EdgeBlock *d
     {
         unsigned long free_blocks = device_edge_block_capacity - d_e_queue.count;
 
-        if ((free_blocks < total_edge_blocks_count_init) || (d_e_queue.rear + total_edge_blocks_count_init) % device_edge_block_capacity == d_e_queue.front) {
-            return;
-        }
+        // if ((free_blocks < total_edge_blocks_count_init) || (d_e_queue.rear + total_edge_blocks_count_init) % device_edge_block_capacity == d_e_queue.front) {
+        //     return;
+        // }
 
         d_e_queue.edge_block_address[id] = d_edge_preallocate_list + id;
+        if(id < 10){
+            printf("EdgeBlock-%ld address = [%p]\n", id, d_e_queue.edge_block_address[id]);
+        }
     }
 }
 
@@ -70,7 +74,10 @@ __global__ void printVertexDictionaryKernel(const VertexDictionary *d_vertex_dic
 
 __global__ void printEdgeBlockQueue(EdgeBlock **d_queue_edge_block_address, size_t queue_size) {
 
-    for(int i = 0 ; i < queue_size; i++) {
+    size_t sz = 40;
+    if(queue_size < sz) sz = queue_size;
+
+    for(int i = 0 ; i < sz; i++) {
         EdgeBlock *block = d_queue_edge_block_address[i];
 
         if (block != NULL) {
