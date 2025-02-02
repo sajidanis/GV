@@ -108,14 +108,14 @@ struct EdgePreallocatedQueue{
 
 struct VertexDictionary {
     unsigned long *vertex_id;
-    unsigned long *edge_block_count;
+    unsigned long *edge_block_count; // Keeps track of the number of edge blocks for each vertex
     unsigned long active_vertex_count;
 
-    unsigned int *active_edge_count;
+    unsigned int *active_edge_count; // Keeps track of the number of active edges for each vertex
     unsigned long *last_insert_edge_offset;
 
     EdgeBlock **last_insert_edge_block;
-    EdgeBlock **edge_block_address;
+    EdgeBlock **edge_block_address; // Keeps track of root of the EdgeBlock tree for all the vertices
 };
 
 #endif

@@ -9,4 +9,6 @@
 
 void static_tc(GraphVine *graph, thrust::device_vector<float> &d_triangleCount);
 
+void dynamic_tc(GraphVine *graph, thrust::device_vector<float> &d_triangleCount);
+
 #endif

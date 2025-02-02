@@ -362,6 +362,10 @@ void GraphVine::batchInsert(CSR *csr, size_t kk) {
     std::cout << "Batched insert done" << std::endl;
 }
 
+void GraphVine::batchDelete(CSR *csr, size_t kk){
+    
+}
+
 unsigned long GraphVine::get_edge_block_count_device(){
 
     // show memory usage of GPU
