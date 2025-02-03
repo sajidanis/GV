@@ -421,4 +421,10 @@ unsigned long GraphVine::getVertexSize() {
     return CSR::h_graph_prop->xDim;
 }
 
+
+void printGraphStructure(){
+    std::cout << "Printing Graph Structure" << std::endl;
+    
+    cudaDeviceSynchronize();
+}
 // 
