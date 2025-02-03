@@ -20,6 +20,8 @@
 
 #include "init_kernels.cuh"
 #include "insert_kernels.cuh"
+#include "delete_kernels.cuh"
+#include "util_kernels.cuh"
 
 // Global Variables
 extern __device__ EdgePreallocatedQueue d_e_queue;
@@ -36,6 +38,8 @@ public:
 
     void batchInsert(CSR *csr, size_t kk);
 
+    void batchDelete(CSR *csr, size_t kk);
+
     void copyGraphDataFromHostToDevice();
 
     VertexDictionary* getVertexDictionary();
@@ -48,6 +52,8 @@ public:
     unsigned long* getCsrOffsetNewPointer();
 
     unsigned long getVertexSize();
+
+    void printDeviceVertexDictionary();
 
 private:
     

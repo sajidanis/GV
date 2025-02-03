@@ -23,6 +23,8 @@ add_executable(GraphVine src/main.cu
     src/util/util.cu
     src/dynamicStructure/kernels/init_kernels.cu
     src/dynamicStructure/kernels/insert_kernels.cu
+    src/dynamicStructure/kernels/delete_kernels.cu
+    src/dynamicStructure/kernels/util_kernels.cu
     src/util/device_functions.cu
     src/algorithm/pagerank/pagerank.cu
     src/algorithm/pagerank/pr_kernel.cu

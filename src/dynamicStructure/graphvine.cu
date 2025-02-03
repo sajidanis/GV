@@ -361,6 +361,90 @@ void GraphVine::batchInsert(CSR *csr, size_t kk) {
     std::cout << "Batched insert done" << std::endl;
 }
 
+void GraphVine::batchDelete(CSR *csr, size_t kk) {
+    auto &profiler = Profiler::getInstance();
+
+    auto h_csr_offset_new = csr->get_csr_offset();
+    auto h_csr_edges_new = csr->get_csr_edges();
+    auto h_source_degrees = csr->get_source_degree();
+
+    auto edge_size = csr->h_graph_prop->total_edges;
+
+    auto vertex_size = csr->h_graph_prop->xDim;
+    auto batch_size = csr->h_graph_prop->batch_size;
+
+    thrust::copy(h_csr_offset_new.begin(), h_csr_offset_new.end(), d_csr_offset_new.begin());
+
+    thrust::copy(h_csr_edges_new.begin(), h_csr_edges_new.end(), d_csr_edges_new.begin());
+
+    thrust::copy(h_source_degrees.begin(), h_source_degrees.end(), d_source_degrees_new.begin());
+
+    cudaDeviceSynchronize();
+
+    // Batch Duplicates Removal
+
+    profiler.start("BATCH DUPLICATION FOR DELETION");
+
+    unsigned long thread_blocks = ceil(double(batch_size) / THREADS_PER_BLOCK);
+
+    device_remove_batch_duplicates<<<thread_blocks, THREADS_PER_BLOCK>>>(vertex_size, batch_size,d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_source_degrees_new_pointer);
+
+    cudaDeviceSynchronize();
+    std::cout << "Removed intra-batch duplicates" << std::endl;
+
+    thread_blocks = ceil(double(vertex_size) / THREADS_PER_BLOCK);
+
+    device_update_source_degrees<<<thread_blocks, THREADS_PER_BLOCK>>>(vertex_size, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_source_degrees_new_pointer);
+
+    cudaDeviceSynchronize();
+
+    std::cout << "Source Degree Updated\n";
+
+    thrust::host_vector<unsigned long> h_source_degrees_new = d_source_degrees_new;
+
+    cudaDeviceSynchronize();
+
+    auto max_degree_batch = h_source_degrees_new[0];
+    auto sum_degree_batch = h_source_degrees_new[0];
+
+    for (unsigned long j = 1; j < vertex_size; j++) {
+        if (h_source_degrees_new[j] > max_degree_batch)
+            max_degree_batch = h_source_degrees_new[j];
+        sum_degree_batch += h_source_degrees_new[j];
+    }
+
+    auto average_degree_batch = sum_degree_batch / vertex_size;
+
+    std::cout << "Max degree of batch is " << max_degree_batch << std::endl;
+    std::cout << "Average degree of batch is " << sum_degree_batch / vertex_size << std::endl;
+
+    profiler.stop("BATCH DUPLICATION FOR DELETION");
+
+    cudaDeviceSynchronize();
+
+    thread_blocks = ceil(double(vertex_size) / THREADS_PER_BLOCK);
+
+    std::cout << "Finding affected nodes" << std::endl;
+
+    find_affected_nodes<<<thread_blocks, THREADS_PER_BLOCK>>>(vertex_size, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_affected_nodes_pointer);
+
+    printDeviceVector("Affected Nodes", d_affected_nodes);
+
+    cudaDeviceSynchronize();
+
+    profiler.start("BATCH DELETE");
+
+    thread_blocks = ceil(double(vertex_size) / THREADS_PER_BLOCK);
+
+    batch_delete_VC<<<thread_blocks, THREADS_PER_BLOCK>>>(d_vertexDictionary, vertex_size, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_source_degrees_new_pointer);
+
+    cudaDeviceSynchronize();
+    profiler.stop("BATCH DELETE");
+
+    std::cout << "Batch Delete Done\n";
+
+}
+
 unsigned long GraphVine::get_edge_block_count_device(){
 
     // show memory usage of GPU
@@ -414,6 +498,15 @@ unsigned long *GraphVine::getCsrOffsetNewPointer() {
 
 unsigned long GraphVine::getVertexSize() {
     return CSR::h_graph_prop->xDim;
+}
+
+void GraphVine::printDeviceVertexDictionary(){
+    size_t vertexSize = CSR::h_graph_prop->xDim;
+
+    std::cout <<"[Vertex Dictionary] -> \n";
+    printDeviceVertexDictionary_kernel<<<1, 1>>>(vertexSize, d_vertexDictionary);
+
+    cudaDeviceSynchronize();
 }
 
 // 

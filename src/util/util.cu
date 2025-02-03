@@ -48,7 +48,8 @@ template void printHostVector<unsigned long>(const std::string name, const thrus
 template void printDeviceVector<unsigned long>(const std::string name, const thrust::device_vector<unsigned long> &d_vec);
 template void printDeviceVector<float>(const std::string name, const thrust::device_vector<float> &d_vec);
 
-unsigned long computeNearestPowerOf2(unsigned long num){
+unsigned long computeNearestPowerOf2(unsigned long num)
+{
     if (num == 0) return 1; // Handle the case where n is 0, since 0 doesn't have a meaningful power of two ceiling.
 
     // If n is already a power of two, return n.
