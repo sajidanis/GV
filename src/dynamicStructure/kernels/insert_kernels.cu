@@ -13,8 +13,14 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
             unsigned long active_edge_block_count = device_vertex_dictionary->edge_block_count[source_vertex];
             unsigned long new_edge_block_count = d_prefix_sum_edge_blocks[source_vertex + 1] - d_prefix_sum_edge_blocks[source_vertex];
 
+            // if(id < 10){
+            //     printf("Src: %ld, Tgt: %ld, edge_block: %ld, required_blocks: %ld\n", source_vertex, target_vertex, active_edge_block_count, new_edge_block_count);
+            // }
+
             EdgeBlock *root = NULL;
             EdgeBlock *base = NULL;
+
+            // printf("Source: %ld, Address of edge block: %p, Batch_number: %ld\n",source_vertex, device_vertex_dictionary->edge_block_address[source_vertex], batch_number);
 
             if ((device_vertex_dictionary->edge_block_address[source_vertex] == NULL) || (batch_number == 0)) {
 
@@ -40,10 +46,9 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
                     root->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
                     return;
                 }
-            }
-
-            // below else is taken if it's the subsequent batch insert to an adjacency
-            else if ((device_vertex_dictionary->edge_block_address[source_vertex] != NULL) && (batch_number)) {
+            } else if ((device_vertex_dictionary->edge_block_address[source_vertex] != NULL) && (batch_number)) { 
+                // below else is taken if it's the subsequent batch insert to an adjacency
+                
                 unsigned long last_insert_edge_offset = device_vertex_dictionary->last_insert_edge_offset[source_vertex];
                 unsigned long space_remaining = 0;
                 if (last_insert_edge_offset != 0)
@@ -52,7 +57,7 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
 
                 // fill up newly allocated edge_blocks
                 if (((index_counter >= space_remaining)) && (new_edge_block_count > 0)) {
-
+                    
                     index_counter -= space_remaining;
 
                     // current_edge_block_counter value is 0 for the first new edge block
@@ -73,14 +78,12 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
 
                     unsigned long edge_entry_index = index_counter % EDGE_BLOCK_SIZE;
                     root->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
-                }
-
-                // fill up remaining space in last_insert_edge_block
-                else {
+                } else { // fill up remaining space in last_insert_edge_block
                     if ((index_counter < space_remaining) && (space_remaining != EDGE_BLOCK_SIZE)) {
                         // traverse to last insert edge block
                         unsigned long edge_entry_index = index_counter + last_insert_edge_offset;
                         device_vertex_dictionary->last_insert_edge_block[source_vertex]->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
+                        // printf("ID: %ld, edge_index: %ld, address of last edge block: %p\n", id, edge_entry_index, device_vertex_dictionary->last_insert_edge_block[source_vertex]);
                         return;
                     }
                 }
@@ -331,6 +334,8 @@ __global__ void device_insert_preprocessing(VertexDictionary *device_vertex_dict
             unsigned long space_remaining = 0;
             if (last_insert_edge_offset)
                 space_remaining = EDGE_BLOCK_SIZE - last_insert_edge_offset;
+            
+            // printf("Source Degree: %ld, Space Remaining: %ld, Last Insert Offset: %ld\n", d_source_degrees[id], space_remaining, last_insert_edge_offset);
 
             unsigned long edge_blocks;
             if (batch_number != 0) {
@@ -348,6 +353,7 @@ __global__ void device_insert_preprocessing(VertexDictionary *device_vertex_dict
                 edge_blocks = ceil(double(d_source_degrees[id]) / EDGE_BLOCK_SIZE);
             }
             d_edge_blocks_count[id] = edge_blocks;
+            // printf("Number of edge blocks required by Id: %ld == %ld\n", id, edge_blocks);
         } else
             d_edge_blocks_count[id] = 0;
     }

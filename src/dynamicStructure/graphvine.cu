@@ -233,7 +233,6 @@ void GraphVine::batchInsert(CSR *csr, size_t kk) {
 
     thrust::copy(h_source_degrees.begin(), h_source_degrees.end(), d_source_degrees_new.begin());
 
-
     cudaDeviceSynchronize();
 
     // Batch Duplicates Removal
@@ -362,10 +361,6 @@ void GraphVine::batchInsert(CSR *csr, size_t kk) {
     std::cout << "Batched insert done" << std::endl;
 }
 
-void GraphVine::batchDelete(CSR *csr, size_t kk){
-    
-}
-
 unsigned long GraphVine::get_edge_block_count_device(){
 
     // show memory usage of GPU
@@ -421,10 +416,4 @@ unsigned long GraphVine::getVertexSize() {
     return CSR::h_graph_prop->xDim;
 }
 
-
-void printGraphStructure(){
-    std::cout << "Printing Graph Structure" << std::endl;
-    
-    cudaDeviceSynchronize();
-}
 // 

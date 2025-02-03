@@ -36,8 +36,6 @@ public:
 
     void batchInsert(CSR *csr, size_t kk);
 
-    void batchDelete(CSR *csr, size_t kk);
-
     void copyGraphDataFromHostToDevice();
 
     VertexDictionary* getVertexDictionary();
