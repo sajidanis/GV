@@ -57,15 +57,15 @@ int main(int argc, char **argv){
     // std::cout << "Free memory: " << free_mem << ", Total memory: " << total_mem << std::endl;
     // std::cout << "Required memory: " << vertex_size * sizeof(float) * 2 << std::endl; // For two vectors
 
-    // thrust::device_vector<float> d_pageRankVector_1(vertex_size);
-    // thrust::device_vector<float> d_pageRankVector_2(vertex_size);
+    thrust::device_vector<float> d_pageRankVector_1(vertex_size);
+    thrust::device_vector<float> d_pageRankVector_2(vertex_size);
 
     // thrust::device_vector<float> d_triangleCount(vertex_size);
 
     // std::cout << "Starting Page Rank algorithm in main" << std::endl;
 
     // Run PR
-    // static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+    static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
 
     // Run TC
     // static_tc(dynGraph, d_triangleCount);
@@ -103,9 +103,9 @@ int main(int argc, char **argv){
             // dynGraph->printDeviceVertexDictionary();
 
 
-            // dynamic_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+            dynamic_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
 
-            // static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+            static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
 
             // dynamic_tc(dynGraph, d_triangleCount);
 

@@ -10,11 +10,13 @@ __global__ void pageRank_kernel_HD(VertexDictionary *device_vertex_dictionary, u
 
         // printf("[%ld] => Edge blocks : %ld \t Edge count: %ld\n", id, edge_blocks, edge_count);
 
+        EdgeBlock *root;
+
         for (unsigned long i = 0; i < edge_blocks; i++) {
             unsigned long bit_string = bit_string_lookup[i];
-            EdgeBlock *root = device_vertex_dictionary->edge_block_address[source_vertex];
+            EdgeBlock *parent = device_vertex_dictionary->edge_block_address[source_vertex];
 
-            root = traverse_bit_string(root, bit_string);
+            root = traverse_bit_string(parent, bit_string);
             float page_factor = d_pageRankVector_1[source_vertex] / edge_count;
 
             for (unsigned long i = 0; i < EDGE_BLOCK_SIZE; i++) {
@@ -38,11 +40,13 @@ __global__ void dynamic_pageRank_kernel_HD(VertexDictionary *device_vertex_dicti
 
         // printf("[%ld] => Edge blocks : %ld \t Edge count: %ld\n", id, edge_blocks, edge_count);
 
+        EdgeBlock *root;
+
         for (unsigned long i = 0; i < edge_blocks; i++) {
             unsigned long bit_string = bit_string_lookup[i];
-            EdgeBlock *root = device_vertex_dictionary->edge_block_address[source_vertex];
+            EdgeBlock *parent = device_vertex_dictionary->edge_block_address[source_vertex];
 
-            root = traverse_bit_string(root, bit_string);
+            root = traverse_bit_string(parent, bit_string);
             float page_factor = d_pageRankVector_1[source_vertex] / edge_count;
 
             for (unsigned long i = 0; i < EDGE_BLOCK_SIZE; i++) {
