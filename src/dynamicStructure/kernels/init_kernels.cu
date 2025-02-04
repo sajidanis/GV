@@ -23,12 +23,6 @@ __global__ void parallel_push_edge_preallocate_list_to_device_queue(EdgeBlock *d
     unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
     if (id < total_edge_blocks_count_init)
     {
-        unsigned long free_blocks = device_edge_block_capacity - d_e_queue.count;
-
-        // if ((free_blocks < total_edge_blocks_count_init) || (d_e_queue.rear + total_edge_blocks_count_init) % device_edge_block_capacity == d_e_queue.front) {
-        //     return;
-        // }
-
         d_e_queue.edge_block_address[id] = d_edge_preallocate_list + id;
         if(id < 10){
             printf("EdgeBlock-%ld address = [%p]\n", id, d_e_queue.edge_block_address[id]);
@@ -81,7 +75,7 @@ __global__ void printEdgeBlockQueue(EdgeBlock **d_queue_edge_block_address, size
         EdgeBlock *block = d_queue_edge_block_address[i];
 
         if (block != NULL) {
-            printf("EdgeBlock[%lu] -> ", i);
+            printf("EdgeBlock[%d] -> ", i);
 
             // Print edge block entries
             for (unsigned long j = 0; j < EDGE_BLOCK_SIZE; j++) {
@@ -90,7 +84,7 @@ __global__ void printEdgeBlockQueue(EdgeBlock **d_queue_edge_block_address, size
             printf("\n");
             // Add more fields to print if needed
         } else {
-            printf("EdgeBlock[%lu]: NULL\n", i);
+            printf("EdgeBlock[%d]: NULL\n", i);
         }
     }
 }

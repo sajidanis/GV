@@ -98,6 +98,11 @@ int main(int argc, char **argv){
 
             // dynGraph->printDeviceVertexDictionary();
 
+            dynGraph->compaction();
+
+            // dynGraph->printDeviceVertexDictionary();
+
+
             // dynamic_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
 
             // static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);

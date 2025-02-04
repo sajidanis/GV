@@ -13,14 +13,8 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
             unsigned long active_edge_block_count = device_vertex_dictionary->edge_block_count[source_vertex];
             unsigned long new_edge_block_count = d_prefix_sum_edge_blocks[source_vertex + 1] - d_prefix_sum_edge_blocks[source_vertex];
 
-            // if(id < 10){
-            //     printf("Src: %ld, Tgt: %ld, edge_block: %ld, required_blocks: %ld\n", source_vertex, target_vertex, active_edge_block_count, new_edge_block_count);
-            // }
-
             EdgeBlock *root = NULL;
             EdgeBlock *base = NULL;
-
-            // printf("Source: %ld, Address of edge block: %p, Batch_number: %ld\n",source_vertex, device_vertex_dictionary->edge_block_address[source_vertex], batch_number);
 
             if ((device_vertex_dictionary->edge_block_address[source_vertex] == NULL) || (batch_number == 0)) {
 
@@ -44,6 +38,7 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
                     // return;
 
                     root->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
+                    atomicAdd(&(root->active_edge_count), 1);
                     return;
                 }
             } else if ((device_vertex_dictionary->edge_block_address[source_vertex] != NULL) && (batch_number)) { 
@@ -78,11 +73,15 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
 
                     unsigned long edge_entry_index = index_counter % EDGE_BLOCK_SIZE;
                     root->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
+                    atomicAdd(&(root->active_edge_count), 1);
                 } else { // fill up remaining space in last_insert_edge_block
                     if ((index_counter < space_remaining) && (space_remaining != EDGE_BLOCK_SIZE)) {
                         // traverse to last insert edge block
                         unsigned long edge_entry_index = index_counter + last_insert_edge_offset;
                         device_vertex_dictionary->last_insert_edge_block[source_vertex]->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
+                        
+                        atomicAdd(&(device_vertex_dictionary->last_insert_edge_block[source_vertex]->active_edge_count), 1);
+
                         // printf("ID: %ld, edge_index: %ld, address of last edge block: %p\n", id, edge_entry_index, device_vertex_dictionary->last_insert_edge_block[source_vertex]);
                         return;
                     }

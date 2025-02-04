@@ -7,6 +7,8 @@
 #include "graphvine.cuh"
 #include "device_functions.cuh"
 
+__global__ void build_bit_string_lookup();
+
 __global__ void printDeviceVertexDictionary_kernel(size_t vertexSize, VertexDictionary* vertexDictionary);
 
 

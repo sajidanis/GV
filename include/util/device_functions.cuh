@@ -19,4 +19,6 @@ __device__ unsigned long tc_device_binary_search(unsigned long *input_array, uns
 
 __device__ unsigned long long tc_final_device_binary_search(unsigned long *input_array, unsigned long long key, unsigned long long size);
 
+__device__ unsigned long traversal_string(unsigned long val, unsigned long *length);
+
 #endif

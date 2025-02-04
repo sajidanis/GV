@@ -3,6 +3,11 @@
 __device__ EdgePreallocatedQueue d_e_queue;
 
 GraphVine::GraphVine(CSR *csr) : h_csr(csr) {
+
+    // Build bit string lookup
+    size_t thread_blocks = ceil(double(BIT_STRING_LOOKUP_SIZE) / THREADS_PER_BLOCK);
+    build_bit_string_lookup<<<thread_blocks, THREADS_PER_BLOCK>>>();
+
     auto &profiler = Profiler::getInstance();
 
     profiler.logMemoryUsage();
@@ -126,6 +131,9 @@ void GraphVine::initiateDeviceVectors(){
     size_t edge_size = CSR::h_graph_prop->total_edges;
     size_t vertex_size = CSR::h_graph_prop->xDim;
 
+    this->vertex_size = vertex_size;
+    this->edge_size = edge_size;
+
     d_csr_edges_new = thrust::device_vector<unsigned long>(edge_size);
     d_source_degrees_new = thrust::device_vector<unsigned long>(vertex_size);
     d_csr_offset_new = thrust::device_vector<unsigned long> (vertex_size + 1);
@@ -192,14 +200,9 @@ void GraphVine::bulkBuild(){
     cudaDeviceSynchronize();
 
     std::cout << "Bulk build real graph now" << std::endl;
-    unsigned long insert_load_factor_VC = 2;
 
     unsigned long start_index = 0;
     unsigned long end_index = edge_size;
-
-    unsigned long remaining_edges = edge_size - start_index;
-
-    unsigned long current_batch = end_index - start_index;
 
     thread_blocks = ceil(double(edge_size) / THREADS_PER_BLOCK);
 
@@ -368,8 +371,6 @@ void GraphVine::batchDelete(CSR *csr, size_t kk) {
     auto h_csr_edges_new = csr->get_csr_edges();
     auto h_source_degrees = csr->get_source_degree();
 
-    auto edge_size = csr->h_graph_prop->total_edges;
-
     auto vertex_size = csr->h_graph_prop->xDim;
     auto batch_size = csr->h_graph_prop->batch_size;
 
@@ -413,8 +414,6 @@ void GraphVine::batchDelete(CSR *csr, size_t kk) {
         sum_degree_batch += h_source_degrees_new[j];
     }
 
-    auto average_degree_batch = sum_degree_batch / vertex_size;
-
     std::cout << "Max degree of batch is " << max_degree_batch << std::endl;
     std::cout << "Average degree of batch is " << sum_degree_batch / vertex_size << std::endl;
 
@@ -443,6 +442,19 @@ void GraphVine::batchDelete(CSR *csr, size_t kk) {
 
     std::cout << "Batch Delete Done\n";
 
+}
+
+void GraphVine::compaction(){
+
+    auto &profiler = Profiler::getInstance();
+
+    profiler.start("COMPACTION");
+
+    size_t thread_blocks = ceil((double)(vertex_size) / THREADS_PER_BLOCK);
+    compactionVertexCentric<<<thread_blocks, THREADS_PER_BLOCK>>>(vertex_size, d_vertexDictionary);
+    cudaDeviceSynchronize();
+
+    profiler.stop("COMPACTION");
 }
 
 unsigned long GraphVine::get_edge_block_count_device(){
@@ -497,14 +509,13 @@ unsigned long *GraphVine::getCsrOffsetNewPointer() {
 }
 
 unsigned long GraphVine::getVertexSize() {
-    return CSR::h_graph_prop->xDim;
+    return this->vertex_size;
 }
 
 void GraphVine::printDeviceVertexDictionary(){
-    size_t vertexSize = CSR::h_graph_prop->xDim;
 
     std::cout <<"[Vertex Dictionary] -> \n";
-    printDeviceVertexDictionary_kernel<<<1, 1>>>(vertexSize, d_vertexDictionary);
+    printDeviceVertexDictionary_kernel<<<1, 1>>>(vertex_size, d_vertexDictionary);
 
     cudaDeviceSynchronize();
 }

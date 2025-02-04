@@ -24,7 +24,7 @@ struct Edge {
 
 struct EdgeBlock {
     Edge edge_block_entry[EDGE_BLOCK_SIZE]; // instead of an array we need to change it to hashmap kind of structure
-    unsigned short active_edge_count;
+    unsigned int active_edge_count;
     EdgeBlock *lptr;
     EdgeBlock *rptr;
     EdgeBlock *level_order_predecessor;
@@ -100,9 +100,9 @@ struct EdgeBlock {
 */
 
 struct EdgePreallocatedQueue{
-    long front;
-    long rear;
-    long count;
+    unsigned long long front;
+    unsigned long long rear;
+    unsigned    long count;
     EdgeBlock **edge_block_address;
 };
 

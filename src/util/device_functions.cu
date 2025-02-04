@@ -88,10 +88,12 @@ __device__ EdgeBlock *traverse_bit_string(EdgeBlock *root, unsigned long bit_str
     EdgeBlock *curr = root;
 
     for (; bit_string > 0; bit_string /= 10){
-        if (bit_string % 2)
+        if (bit_string % 2){
             curr = curr->lptr;
-        else
+        }
+        else{
             curr = curr->rptr;
+        }
     }
 
     return curr;
@@ -148,4 +150,20 @@ __device__ unsigned long long tc_final_device_binary_search(unsigned long *input
     return 0;
 }
 
+__device__ unsigned long traversal_string(unsigned long val, unsigned long *length) {
+    unsigned long temp = val;
+    unsigned long bit_string = 0;
+    *length = 0;
 
+    while (temp > 1){
+        // bit_string = ((temp % 2) * pow(10, iteration++)) + bit_string;
+        if (temp % 2)
+            bit_string = (bit_string * 10) + 2;
+        else
+            bit_string = (bit_string * 10) + 1;
+
+        // bit_string = (bit_string * 10) + (temp % 2);
+        temp = temp / 2;
+    }
+    return bit_string;
+}

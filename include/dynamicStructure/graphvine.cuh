@@ -40,6 +40,8 @@ public:
 
     void batchDelete(CSR *csr, size_t kk);
 
+    void compaction();
+
     void copyGraphDataFromHostToDevice();
 
     VertexDictionary* getVertexDictionary();
@@ -61,6 +63,9 @@ private:
     VertexDictionary *d_vertexDictionary;
     size_t vertexDictionarySize;
     CSR *h_csr;
+
+    size_t vertex_size;
+    size_t edge_size;
 
     // Private members for Edge Blocks
     EdgeBlock *device_edge_block;
