@@ -269,9 +269,10 @@ __global__ void batched_delete_kernel_EC_LD(VertexDictionary *device_vertex_dict
                     break;
                 else{
                     if ((root->edge_block_entry[i].destination_vertex == target_vertex)) {
-                        root->edge_block_entry[i].destination_vertex = INFTY;
+                        d_csr_edges[d_csr_offset[source_vertex] + (index_counter % input_batch_degree)] = INFTY;
+                        // root->edge_block_entry[i].destination_vertex = INFTY;
                         // device_vertex_dictionary->active_edge_count[source_vertex]--;
-                        atomicDec(&(device_vertex_dictionary->active_edge_count[source_vertex]), INFTY);
+                        // atomicDec(&(device_vertex_dictionary->active_edge_count[source_vertex]), INFTY);
                         // root->active_edge_count--;
                         break;
                     }

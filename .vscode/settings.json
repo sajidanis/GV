@@ -58,6 +58,18 @@
         "semaphore": "cpp",
         "stop_token": "cpp",
         "thread": "cpp",
-        "__config": "cpp"
+        "__config": "cpp",
+        "bitset": "cpp",
+        "charconv": "cpp",
+        "codecvt": "cpp",
+        "iomanip": "cpp",
+        "shared_mutex": "cpp",
+        "span": "cpp",
+        "cfenv": "cpp",
+        "cinttypes": "cpp",
+        "variant": "cpp",
+        "format": "cpp",
+        "text_encoding": "cpp",
+        "__nullptr": "cpp"
     }
 }

@@ -6,6 +6,7 @@
 
 #include "graphvine.cuh"
 #include "pr_kernel.cuh"
+#include "cudaError.cuh"
 
 void static_pagerank(GraphVine *graph, float alpha, float epsilon, int max_iter, thrust::device_vector<float> &d_pageRankVector_1, thrust::device_vector<float> &d_pageRankVector_2);
 

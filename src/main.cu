@@ -65,7 +65,7 @@ int main(int argc, char **argv){
     // std::cout << "Starting Page Rank algorithm in main" << std::endl;
 
     // Run PR
-    static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+    static_pagerank(dynGraph, 0.85, 0.0001, 50, d_pageRankVector_1, d_pageRankVector_2);
 
     // Run TC
     // static_tc(dynGraph, d_triangleCount);
@@ -90,22 +90,24 @@ int main(int argc, char **argv){
             csr->generate_random_batch(BATCH_SIZE, kk);
             profiler.stop("Generate Random Batch");
 
-            // dynGraph->batchInsert(csr, kk);
+            // dynGraph->printDeviceVertexDictionary();
+
+            dynGraph->batchInsert(csr, kk);
 
             // dynGraph->printDeviceVertexDictionary();
 
-            dynGraph->batchDelete(csr, kk);
+            // dynGraph->batchDelete(csr, kk);
 
             // dynGraph->printDeviceVertexDictionary();
 
-            dynGraph->compaction();
+            // dynGraph->compaction();
 
             // dynGraph->printDeviceVertexDictionary();
 
 
-            dynamic_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+            dynamic_pagerank(dynGraph, 0.85, 0.0001, 15, d_pageRankVector_1, d_pageRankVector_2);
 
-            static_pagerank(dynGraph, 0.85, 0.0001, 100, d_pageRankVector_1, d_pageRankVector_2);
+            static_pagerank(dynGraph, 0.85, 0.0001, 50, d_pageRankVector_1, d_pageRankVector_2);
 
             // dynamic_tc(dynGraph, d_triangleCount);
 
