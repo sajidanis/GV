@@ -96,11 +96,13 @@ int main(int argc, char **argv){
 
             // dynGraph->printDeviceVertexDictionary();
 
-            // dynGraph->batchDelete(csr, kk);
+            csr->generate_random_batch(BATCH_SIZE, kk+1);
+
+            dynGraph->batchDelete(csr, kk);
 
             // dynGraph->printDeviceVertexDictionary();
 
-            // dynGraph->compaction();
+            dynGraph->compaction();
 
             // dynGraph->printDeviceVertexDictionary();
 

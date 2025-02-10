@@ -351,6 +351,8 @@ void GraphVine::batchInsert(CSR *csr, size_t kk) {
     // vd_time = clock() - vd_time;
     std::cout << "Checkpoint" << std::endl;
 
+    profiler.start("BATCH INSERT");
+
     thread_blocks = ceil(double(batch_size) / THREADS_PER_BLOCK);
 
     batched_edge_inserts_EC<<<thread_blocks, THREADS_PER_BLOCK>>>(device_edge_block, d_edge_blocks_count_pointer, total_edge_blocks_count_batch, vertex_size, edge_size, d_prefix_sum_edge_blocks_new_pointer, thread_blocks, d_vertexDictionary, kk, batch_size, start_index, end_index, d_csr_offset_new_pointer, d_csr_edges_new_pointer, d_source_degrees_new_pointer);
@@ -361,6 +363,8 @@ void GraphVine::batchInsert(CSR *csr, size_t kk) {
 
 
     cudaDeviceSynchronize();
+
+    profiler.stop("BATCH INSERT");
     std::cout << "Batched insert done" << std::endl;
 }
 
