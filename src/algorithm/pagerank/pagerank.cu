@@ -16,8 +16,10 @@ void static_pagerank(GraphVine *graph, float alpha, float epsilon, int max_iter,
 
     thrust::fill(d_pageRankVector_1.begin(), d_pageRankVector_1.end(), 1.0f / vertex_size);
 
-    float normalized_damp = (1.0f - alpha) / vertex_size;
+    thrust::device_vector<float> d_difference_vector(vertex_size, 0.0f);
+    float *d_difference_ptr = thrust::raw_pointer_cast(d_difference_vector.data());
 
+    float normalized_damp = (1.0f - alpha) / vertex_size;
     
     float h_reduction = 0.0f;
     float *d_reduction;
@@ -39,14 +41,17 @@ void static_pagerank(GraphVine *graph, float alpha, float epsilon, int max_iter,
         CUDA_KERNEL_CHECK();
         cudaDeviceSynchronize();
 
-        pagerank_post_kernel<<<thread_blocks, THREADS_PER_BLOCK>>>(device_vertex_dictionary, vertex_size, alpha, normalized_damp, d_prev_pr_ptr, d_curr_pr_ptr, d_reduction);
+        pagerank_post_kernel<<<thread_blocks, THREADS_PER_BLOCK>>>(device_vertex_dictionary, vertex_size, alpha, normalized_damp, d_prev_pr_ptr, d_curr_pr_ptr, d_difference_ptr);
+
+        h_reduction = thrust::reduce(d_difference_vector.begin(), d_difference_vector.end(), 0.0f, thrust::plus<float>());
+        // reduceSum(d_difference_ptr, d_reduction, vertex_size);
 
         CUDA_KERNEL_CHECK();
         cudaDeviceSynchronize();
 
-        cudaMemcpy(&h_reduction, d_reduction, sizeof(float), cudaMemcpyDeviceToHost);
+        // cudaMemcpy(&h_reduction, d_reduction, sizeof(float), cudaMemcpyDeviceToHost);
 
-        cudaDeviceSynchronize();
+        // cudaDeviceSynchronize();
 
         if(h_reduction < epsilon)
             break;
@@ -76,6 +81,9 @@ void dynamic_pagerank(GraphVine *graph, float alpha, float epsilon, int max_iter
     float *d_prev_pr_ptr = thrust::raw_pointer_cast(d_pageRankVector_1.data());
     float *d_curr_pr_ptr = thrust::raw_pointer_cast(d_pageRankVector_2.data());
 
+    thrust::device_vector<float> d_difference_vector(vertex_size, 0.0f);
+    float *d_difference_ptr = thrust::raw_pointer_cast(d_difference_vector.data());
+
     float normalized_damp = (1.0f - alpha) / vertex_size;
     
     float h_reduction = 0.0f;
@@ -99,12 +107,14 @@ void dynamic_pagerank(GraphVine *graph, float alpha, float epsilon, int max_iter
         CUDA_KERNEL_CHECK();
         cudaDeviceSynchronize();
 
-        pagerank_post_kernel_dynamic<<<thread_blocks, THREADS_PER_BLOCK>>>(device_vertex_dictionary, vertex_size, alpha, normalized_damp, d_prev_pr_ptr, d_curr_pr_ptr, d_reduction_dyn, d_affected_nodes_pointer);
+        pagerank_post_kernel_dynamic<<<thread_blocks, THREADS_PER_BLOCK>>>(device_vertex_dictionary, vertex_size, alpha, normalized_damp, d_prev_pr_ptr, d_curr_pr_ptr, d_difference_ptr, d_affected_nodes_pointer);
+
+        h_reduction = thrust::reduce(d_difference_vector.begin(), d_difference_vector.end(), 0.0f, thrust::plus<float>());
 
         CUDA_KERNEL_CHECK();
-        cudaDeviceSynchronize();
+        // cudaDeviceSynchronize();
 
-        cudaMemcpy(&h_reduction, d_reduction_dyn, sizeof(float), cudaMemcpyDeviceToHost);
+        // cudaMemcpy(&h_reduction, d_reduction_dyn, sizeof(float), cudaMemcpyDeviceToHost);
 
         cudaDeviceSynchronize();
 

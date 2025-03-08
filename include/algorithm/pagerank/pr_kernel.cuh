@@ -4,6 +4,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#include "cudaError.cuh"
+
 #include "graphvine.cuh"
 
 __global__ void pageRank_kernel_HD(VertexDictionary *device_vertex_dictionary, unsigned long vertex_size, float *d_pageRankVector_1, float *d_pageRankVector_2);

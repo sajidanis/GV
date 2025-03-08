@@ -47,6 +47,7 @@ void printDeviceVector(const std::string name, const thrust::device_vector<T>& d
 template void printHostVector<unsigned long>(const std::string name, const thrust::host_vector<unsigned long> &vec);
 template void printDeviceVector<unsigned long>(const std::string name, const thrust::device_vector<unsigned long> &d_vec);
 template void printDeviceVector<float>(const std::string name, const thrust::device_vector<float> &d_vec);
+template void printDeviceVector<int>(const std::string name, const thrust::device_vector<int> &d_vec);
 
 unsigned long computeNearestPowerOf2(unsigned long num)
 {

@@ -96,24 +96,26 @@ void GraphVine::initiateVertexDictionary() {
 
 void GraphVine::initiateEdgeBlocks(){
     size_t vertexSize = CSR::h_graph_prop->xDim;
-    h_edge_blocks_count_init.resize(vertexSize);
-    unsigned long total_edge_blocks_count_init = 0;
+    // h_edge_blocks_count_init.resize(vertexSize);
+    // unsigned long total_edge_blocks_count_init = 0;
     // std::cout << "Edge blocks calculation" << std::endl << "Source\tEdge block count\tGPU address" << std::endl;
 
     auto source_degrees = h_csr->get_source_degree();
 
-    for (unsigned long i = 0; i < vertexSize; i++){
-        // unsigned long edge_blocks = ceil(double(source_degrees[i]) / EDGE_BLOCK_SIZE);
-        unsigned long edge_blocks = (source_degrees[i] + EDGE_BLOCK_SIZE - 1) / EDGE_BLOCK_SIZE;
-        h_edge_blocks_count_init[i] = edge_blocks;
-        total_edge_blocks_count_init += edge_blocks;
-    }
+    // for (unsigned long i = 0; i < vertexSize; i++){
+    //     // unsigned long edge_blocks = ceil(double(source_degrees[i]) / EDGE_BLOCK_SIZE);
+    //     unsigned long edge_blocks = (source_degrees[i] + EDGE_BLOCK_SIZE - 1) / EDGE_BLOCK_SIZE;
+    //     h_edge_blocks_count_init[i] = edge_blocks;
+    //     total_edge_blocks_count_init += edge_blocks;
+    // }
 
-    total_edge_blocks_count_init = total_edge_blocks_count_init * 10;
+    // total_edge_blocks_count_init = total_edge_blocks_count_init * 10;
 
-    printf("Total edge blocks needed = %lu, %luMB\n", total_edge_blocks_count_init, (total_edge_blocks_count_init * sizeof(EdgeBlock)) / 1024 / 1024);
+    // printf("Total edge blocks needed = %lu, %luMB\n", total_edge_blocks_count_init, (total_edge_blocks_count_init * sizeof(EdgeBlock)) / 1024 / 1024);
 
     edge_block_count_device = get_edge_block_count_device();
+
+    printf("Total edge blocks needed = %lu, %luMB\n", edge_block_count_device, (edge_block_count_device * sizeof(EdgeBlock)) / 1024 / 1024);
     cudaDeviceSynchronize();
 
     // cudaMalloc((struct edge_block**)&device_edge_block, total_edge_blocks_count_init * sizeof(struct edge_block));

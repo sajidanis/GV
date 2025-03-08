@@ -28,6 +28,7 @@ struct EdgeBlock {
     EdgeBlock *lptr;
     EdgeBlock *rptr;
     EdgeBlock *level_order_predecessor;
+    unsigned long *src_vertex;
 };
 
 /** 
@@ -102,7 +103,7 @@ struct EdgeBlock {
 struct EdgePreallocatedQueue{
     unsigned long long front;
     unsigned long long rear;
-    unsigned    long count;
+    unsigned long count;
     EdgeBlock **edge_block_address;
 };
 

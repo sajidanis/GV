@@ -31,7 +31,7 @@ __global__ void pageRank_kernel_HD(VertexDictionary *device_vertex_dictionary, u
     }
 }
 
-__global__ void pagerank_post_kernel(VertexDictionary *device_vertex_dictionary, size_t vertex_size, float damp, float normalized_damp, float *d_prev_pr, float *d_curr_pr, float *reduction){
+__global__ void pagerank_post_kernel(VertexDictionary *device_vertex_dictionary, size_t vertex_size, float damp, float normalized_damp, float *d_prev_pr, float *d_curr_pr, float *d_difference) {
 
     unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -40,7 +40,7 @@ __global__ void pagerank_post_kernel(VertexDictionary *device_vertex_dictionary,
         float new_pr = normalized_damp + (damp * d_curr_pr[id]);
         d_curr_pr[id] = new_pr;
         float diff = fabsf(d_curr_pr[id] - d_prev_pr[id]);
-        atomicAdd(reduction, diff);
+        d_difference[id] = diff;
         d_prev_pr[id] = d_curr_pr[id];
         d_curr_pr[id] = 0.0f;
     }
@@ -77,7 +77,7 @@ __global__ void dynamic_pageRank_kernel_HD(VertexDictionary *device_vertex_dicti
     }
 }
 
-__global__ void pagerank_post_kernel_dynamic(VertexDictionary *device_vertex_dictionary, size_t vertex_size, float damp, float normalized_damp, float *d_prev_pr, float *d_curr_pr, float *reduction, unsigned long *d_affected_nodes){
+__global__ void pagerank_post_kernel_dynamic(VertexDictionary *device_vertex_dictionary, size_t vertex_size, float damp, float normalized_damp, float *d_prev_pr, float *d_curr_pr, float *d_difference, unsigned long *d_affected_nodes){
 
     unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -89,16 +89,15 @@ __global__ void pagerank_post_kernel_dynamic(VertexDictionary *device_vertex_dic
             d_affected_nodes[id] = 1;
         } else {
             d_affected_nodes[id] = 0;
-            atomicAdd(reduction, diff);
+            d_difference[id] = diff;
             return;
         }
 
         float new_pr = normalized_damp + (damp * d_curr_pr[id]);
         d_curr_pr[id] = new_pr;
         diff = fabsf(d_curr_pr[id] - d_prev_pr[id]);
-        atomicAdd(reduction, diff);
+        d_difference[id] = diff;
         d_prev_pr[id] = d_curr_pr[id];
         d_curr_pr[id] = 0.0f;
     }
-
 }
