@@ -68,7 +68,7 @@ int main(int argc, char **argv){
     // Run PR
     // static_pagerank(dynGraph, 0.85, 0.0001, 50, d_pageRankVector_1, d_pageRankVector_2);
 
-    bc(dynGraph, 0);
+    // bc(dynGraph, 0);
 
     // Run TC
     // static_tc(dynGraph, d_triangleCount);

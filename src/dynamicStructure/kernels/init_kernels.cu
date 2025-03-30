@@ -66,25 +66,16 @@ __global__ void printVertexDictionaryKernel(const VertexDictionary *d_vertex_dic
     }
 }
 
-__global__ void printEdgeBlockQueue(EdgeBlock **d_queue_edge_block_address, size_t queue_size) {
-
-    size_t sz = 40;
-    if(queue_size < sz) sz = queue_size;
-
-    for(int i = 0 ; i < sz; i++) {
-        EdgeBlock *block = d_queue_edge_block_address[i];
-
-        if (block != NULL) {
-            printf("EdgeBlock[%d] -> ", i);
-
-            // Print edge block entries
-            for (unsigned long j = 0; j < EDGE_BLOCK_SIZE; j++) {
-                printf(" %lu ", block->edge_block_entry[j].destination_vertex);
-            }
-            printf("\n");
-            // Add more fields to print if needed
-        } else {
-            printf("EdgeBlock[%d]: NULL\n", i);
-        }
+__global__ void printEdgeBlockQueue() {
+    printf("Queue Info:\n");
+    printf("Front: %llu\n", d_e_queue.front);
+    printf("Rear: %llu\n", d_e_queue.rear);
+    printf("Count: %lu\n", d_e_queue.count);
+    
+    for (unsigned long long i = 0; i < d_e_queue.front; ++i) {
+        EdgeBlock *block = d_e_queue.edge_block_address[i];
+        printf(" %lu ", block->src_vertex);
     }
+    
+    printf("\n");
 }

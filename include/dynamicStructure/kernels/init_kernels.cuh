@@ -17,6 +17,7 @@ __global__ void parallel_vertex_dictionary_init_v1(unsigned long vertex_size, Ve
 
 __global__ void printVertexDictionaryKernel(const VertexDictionary* d_vertex_dict, size_t vertex_size);
 
-__global__ void printEdgeBlockQueue(EdgeBlock **d_queue_edge_block_address, size_t queue_size);
+__global__ void printEdgeBlockQueue();
+
 
 #endif

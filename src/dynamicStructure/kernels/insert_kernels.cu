@@ -29,7 +29,8 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
                         unsigned long length = 0;
                 
                         unsigned long bit_string = bit_string_lookup[global_index_counter];
-
+                        root->src_vertex = source_vertex + 1;
+                        
                         insert_edge_block_to_CBT_v2(NULL, bit_string, length, root, NULL, current_edge_block_counter, global_index_counter, active_edge_block_count, active_edge_block_count + new_edge_block_count, source_vertex, id);
 
                     }
@@ -66,6 +67,7 @@ __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsi
                         unsigned long length = 0;
                     
                         unsigned long bit_string = bit_string_lookup[global_index_counter];
+                        root->src_vertex = source_vertex + 1;
 
                         insert_edge_block_to_CBT_v2(device_vertex_dictionary->edge_block_address[source_vertex], bit_string, length, root, device_vertex_dictionary->last_insert_edge_block[source_vertex], current_edge_block_counter, global_index_counter, active_edge_block_count, active_edge_block_count + new_edge_block_count, source_vertex, id);
 
@@ -148,6 +150,9 @@ __global__ void update_edge_queue(unsigned long pop_count){
     }
     else
         d_e_queue.front = (d_e_queue.front + (unsigned int)pop_count) % EDGE_PREALLOCATE_LIST_SIZE;
+    
+    printf("Queue front is %lu(%p) and rear is %lu(%p)\n", d_e_queue.front, d_e_queue.edge_block_address[d_e_queue.front], d_e_queue.rear, d_e_queue.edge_block_address[d_e_queue.rear]);
+    printf("Queue count is %u\n", d_e_queue.count);
 }
 
 __global__ void device_remove_batch_duplicates(unsigned long vertex_size, unsigned long batch_size, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_source_degrees) {

@@ -28,7 +28,7 @@ struct EdgeBlock {
     EdgeBlock *lptr;
     EdgeBlock *rptr;
     EdgeBlock *level_order_predecessor;
-    unsigned long *src_vertex;
+    unsigned long src_vertex;
 };
 
 /** 
