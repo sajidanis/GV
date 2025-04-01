@@ -74,7 +74,11 @@ __global__ void printEdgeBlockQueue() {
     
     for (unsigned long long i = 0; i < d_e_queue.front; ++i) {
         EdgeBlock *block = d_e_queue.edge_block_address[i];
-        printf(" %lu ", block->src_vertex);
+        printf(" [%lu - %lu] => ", block->src_vertex, block->active_edge_count);
+        for (int j = 0; j < block->active_edge_count; ++j) {
+            printf("%lu ", block->edge_block_entry[j]);
+        }
+        printf("\n");
     }
     
     printf("\n");

@@ -78,9 +78,9 @@ int main(int argc, char **argv){
               << "1. Regular batched edge insertion" << std::endl
               << "2. Edge Insert and Delete performance benchmark" << std::endl
               << "3. Vertex Insert and Delete performance benchmark" << std::endl;
-    // std::cin >> choice;
+    std::cin >> choice;
 
-    choice = 1;
+    // choice = 1;
 
     switch (choice) {
         case 1:
@@ -99,13 +99,13 @@ int main(int argc, char **argv){
 
             // dynGraph->printDeviceVertexDictionary();
 
-            csr->generate_random_batch(BATCH_SIZE, kk+1);
+            // csr->generate_random_batch(BATCH_SIZE, kk+1);
 
-            dynGraph->batchDelete(csr, kk);
+            // dynGraph->batchDelete(csr, kk);
 
             // dynGraph->printDeviceVertexDictionary();
 
-            dynGraph->compaction();
+            // dynGraph->compaction();
 
             // dynGraph->printDeviceVertexDictionary();
 

@@ -216,6 +216,8 @@ void GraphVine::bulkBuild(){
 
     update_edge_queue<<<1, 1>>>(total_edge_blocks_count_batch);
 
+    printEdgeBlockQueue<<<1, 1>>>();
+
     cudaDeviceSynchronize();
 }
 
@@ -363,6 +365,11 @@ void GraphVine::batchInsert(CSR *csr, size_t kk) {
 
     update_edge_queue<<<1, 1>>>(total_edge_blocks_count_batch);
 
+    thread_blocks = ceil(double(39) / THREADS_PER_BLOCK);
+
+    device_sorting_post<<<thread_blocks, THREADS_PER_BLOCK>>>();
+
+    printEdgeBlockQueue<<<1, 1>>>();
 
     cudaDeviceSynchronize();
 

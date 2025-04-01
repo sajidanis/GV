@@ -4,6 +4,9 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#include <thrust/sort.h>
+#include <thrust/execution_policy.h>
+
 #include "graphvine.cuh"
 #include "device_functions.cuh"
 
@@ -26,5 +29,7 @@ __global__ void batched_delete_kernel_EC_HD(VertexDictionary *device_vertex_dict
 __global__ void device_insert_preprocessing(VertexDictionary *device_vertex_dictionary, unsigned long vertex_size, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long batch_size, unsigned long *d_source_degrees, unsigned long batch_number, unsigned long *d_edge_blocks_count);
 
 __global__ void find_affected_nodes(unsigned long vertex_size, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_affected_nodes);
+
+__global__ void device_sorting_post();
 
 #endif

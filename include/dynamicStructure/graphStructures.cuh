@@ -20,6 +20,11 @@ struct Edge {
     unsigned long destination_vertex;
     // unsigned long weight;
     // unsigned long timestamp;
+
+    __host__ __device__
+    bool operator<(const Edge& other) const {
+        return destination_vertex < other.destination_vertex;
+    }
 };
 
 struct EdgeBlock {

@@ -363,3 +363,17 @@ __global__ void device_insert_preprocessing(VertexDictionary *device_vertex_dict
             d_edge_blocks_count[id] = 0;
     }
 }
+
+__global__ void device_sorting_post(){
+    unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (id < d_e_queue.front) {
+        EdgeBlock *root = d_e_queue.edge_block_address[id];
+        unsigned long active_edge_count = root->active_edge_count;
+        unsigned long edge_block_size = EDGE_BLOCK_SIZE;
+
+        // thrust::sort(thrust::device, root->edge_block_entry, root->edge_block_entry + active_edge_count);
+        thrust::sort(thrust::device, root->edge_block_entry, root->edge_block_entry + active_edge_count);
+        
+    }
+}
