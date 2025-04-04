@@ -216,7 +216,7 @@ void GraphVine::bulkBuild(){
 
     update_edge_queue<<<1, 1>>>(total_edge_blocks_count_batch);
 
-    printEdgeBlockQueue<<<1, 1>>>();
+    // printEdgeBlockQueue<<<1, 1>>>();
 
     cudaDeviceSynchronize();
 }
@@ -365,15 +365,28 @@ void GraphVine::batchInsert(CSR *csr, size_t kk) {
 
     update_edge_queue<<<1, 1>>>(total_edge_blocks_count_batch);
 
-    thread_blocks = ceil(double(39) / THREADS_PER_BLOCK);
+    cudaDeviceSynchronize();
+    profiler.stop("BATCH INSERT");
 
-    device_sorting_post<<<thread_blocks, THREADS_PER_BLOCK>>>();
+    profiler.start("BATCH SORTING");
 
-    printEdgeBlockQueue<<<1, 1>>>();
+    EdgePreallocatedQueue h_queue;
+    cudaMemcpyFromSymbol(&h_queue, d_e_queue, sizeof(EdgePreallocatedQueue), 0, cudaMemcpyDeviceToHost);
+
+    std::cout << "Front of the queue is " << h_queue.front << std::endl;
+    cudaDeviceSynchronize();
+
+    // thread_blocks = ceil(double(h_queue.front) / THREADS_PER_BLOCK);
+
+    // device_sorting_post<<<thread_blocks, THREADS_PER_BLOCK>>>();
+    cub_sort_edge_blocks<<<h_queue.front, THREADS_PER_BLOCK>>>();
+
+    // printEdgeBlockQueue<<<1, 1>>>();
 
     cudaDeviceSynchronize();
 
-    profiler.stop("BATCH INSERT");
+    profiler.stop("BATCH SORTING");
+    
     std::cout << "Batched insert done" << std::endl;
 }
 

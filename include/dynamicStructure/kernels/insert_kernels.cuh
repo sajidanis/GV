@@ -4,6 +4,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#include <cub/cub.cuh>
+
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 
@@ -31,5 +33,7 @@ __global__ void device_insert_preprocessing(VertexDictionary *device_vertex_dict
 __global__ void find_affected_nodes(unsigned long vertex_size, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_affected_nodes);
 
 __global__ void device_sorting_post();
+
+__global__ void cub_sort_edge_blocks();
 
 #endif

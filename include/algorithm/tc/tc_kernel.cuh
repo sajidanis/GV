@@ -8,6 +8,8 @@
 
 __global__ void tc_kernel_VC(VertexDictionary *device_vertex_dictionary, unsigned long vertex_size, float *d_triangle_count);
 
+__global__ void tc_kernel_VC_sorted(VertexDictionary *device_vertex_dictionary, unsigned long vertex_size, float *d_triangle_count);
+
 __global__ void dynamic_tc_kernel_VC(VertexDictionary *device_vertex_dictionary, unsigned long vertex_size, float *d_triangle_count, unsigned long *d_affected_nodes);
 
 #endif

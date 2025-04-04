@@ -377,3 +377,34 @@ __global__ void device_sorting_post(){
         
     }
 }
+
+__global__ void cub_sort_edge_blocks() {
+    unsigned long long idx = blockIdx.x;
+    if (idx >= d_e_queue.front) return;
+
+    EdgeBlock* block = d_e_queue.edge_block_address[idx];
+    const int tid = threadIdx.x;
+
+    if (tid >= EDGE_BLOCK_SIZE) return;
+
+    using KeyT = unsigned long long;
+    using ValueT = Edge;
+
+    constexpr int BLOCK_THREADS = EDGE_BLOCK_SIZE;
+    constexpr int ITEMS_PER_THREAD = 1;
+
+    typedef cub::BlockRadixSort<KeyT, BLOCK_THREADS, ITEMS_PER_THREAD, ValueT> BlockRadixSortT;
+    __shared__ typename BlockRadixSortT::TempStorage temp_storage;
+
+    KeyT keys[ITEMS_PER_THREAD];
+    ValueT values[ITEMS_PER_THREAD];
+
+    keys[0] = block->edge_block_entry[tid].destination_vertex;
+    values[0] = block->edge_block_entry[tid];
+
+    __syncthreads(); // barrier before sort
+    BlockRadixSortT(temp_storage).Sort(keys, values);
+    __syncthreads(); // barrier after sort
+
+    block->edge_block_entry[tid] = values[0];
+}

@@ -16,7 +16,7 @@ struct GraphProperties{
     unsigned long batch_size = BATCH_SIZE;
 };
 
-struct Edge {
+struct __host__ __device__ Edge {
     unsigned long destination_vertex;
     // unsigned long weight;
     // unsigned long timestamp;

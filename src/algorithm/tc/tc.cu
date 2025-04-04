@@ -16,7 +16,7 @@ void static_tc(GraphVine *graph, thrust::device_vector<float> &d_triangleCount) 
 
     profiler.start("TC");
   
-    tc_kernel_VC<<<thread_blocks, THREADS_PER_BLOCK>>>(device_vertex_dictionary, vertex_size, d_triangleCount_pointer);
+    tc_kernel_VC_sorted<<<thread_blocks, THREADS_PER_BLOCK>>>(device_vertex_dictionary, vertex_size, d_triangleCount_pointer);
 
     cudaDeviceSynchronize();
 

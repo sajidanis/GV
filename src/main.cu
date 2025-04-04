@@ -61,7 +61,7 @@ int main(int argc, char **argv){
     // thrust::device_vector<float> d_pageRankVector_1(vertex_size);
     // thrust::device_vector<float> d_pageRankVector_2(vertex_size);
 
-    // thrust::device_vector<float> d_triangleCount(vertex_size);
+    thrust::device_vector<float> d_triangleCount(vertex_size);
 
     // std::cout << "Starting Page Rank algorithm in main" << std::endl;
 
@@ -71,7 +71,7 @@ int main(int argc, char **argv){
     // bc(dynGraph, 0);
 
     // Run TC
-    // static_tc(dynGraph, d_triangleCount);
+    static_tc(dynGraph, d_triangleCount);
 
     int choice;
     std::cout << "Enter type of insertion required" << std::endl
@@ -96,6 +96,8 @@ int main(int argc, char **argv){
             // dynGraph->printDeviceVertexDictionary();
 
             dynGraph->batchInsert(csr, kk);
+
+            std::cout << "Batch Inserted" << std::endl;
 
             // dynGraph->printDeviceVertexDictionary();
 
