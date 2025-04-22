@@ -376,16 +376,21 @@ void GraphVine::batchInsert(CSR *csr, size_t kk) {
     std::cout << "Front of the queue is " << h_queue.front << std::endl;
     cudaDeviceSynchronize();
 
-    // thread_blocks = ceil(double(h_queue.front) / THREADS_PER_BLOCK);
+    thread_blocks = ceil(double(h_queue.front) / THREADS_PER_BLOCK);
 
     // device_sorting_post<<<thread_blocks, THREADS_PER_BLOCK>>>();
-    cub_sort_edge_blocks<<<h_queue.front, THREADS_PER_BLOCK>>>();
 
-    // printEdgeBlockQueue<<<1, 1>>>();
+    // cub_sort_edge_blocks<<<h_queue.front, THREADS_PER_BLOCK>>>();
+
+    warp_bitonic_edge_sort<<<h_queue.front, THREADS_PER_BLOCK>>>();
 
     cudaDeviceSynchronize();
 
     profiler.stop("BATCH SORTING");
+
+    printEdgeBlockQueue<<<1, 1>>>();
+
+    cudaDeviceSynchronize();
     
     std::cout << "Batched insert done" << std::endl;
 }

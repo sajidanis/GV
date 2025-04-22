@@ -36,4 +36,6 @@ __global__ void device_sorting_post();
 
 __global__ void cub_sort_edge_blocks();
 
+__global__ void warp_bitonic_edge_sort();
+
 #endif

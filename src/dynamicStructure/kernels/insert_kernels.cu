@@ -1,93 +1,222 @@
 #include "insert_kernels.cuh"
 
-__global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsigned long *d_edge_blocks_count_init, unsigned long total_edge_blocks_count_batch, unsigned long vertex_size, unsigned long edge_size, unsigned long *d_prefix_sum_edge_blocks, unsigned long thread_blocks, VertexDictionary *device_vertex_dictionary, unsigned long batch_number, unsigned long batch_size, unsigned long start_index_batch, unsigned long end_index_batch, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_source_degrees) {
+// __global__ void batched_edge_inserts_EC(EdgeBlock *d_edge_preallocate_list, unsigned long *d_edge_blocks_count_init, unsigned long total_edge_blocks_count_batch, unsigned long vertex_size, unsigned long edge_size, unsigned long *d_prefix_sum_edge_blocks, unsigned long thread_blocks, VertexDictionary *device_vertex_dictionary, unsigned long batch_number, unsigned long batch_size, unsigned long start_index_batch, unsigned long end_index_batch, unsigned long *d_csr_offset, unsigned long *d_csr_edges, unsigned long *d_source_degrees) {
 
+//     unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
+
+//     if (id < batch_size) {
+//         unsigned long target_vertex = d_csr_edges[id];
+
+//         if (target_vertex != INFTY) {
+
+//             unsigned long source_vertex = device_binary_search(d_csr_offset, id, vertex_size);
+//             unsigned long active_edge_block_count = device_vertex_dictionary->edge_block_count[source_vertex];
+//             unsigned long new_edge_block_count = d_prefix_sum_edge_blocks[source_vertex + 1] - d_prefix_sum_edge_blocks[source_vertex];
+
+//             EdgeBlock *root = NULL;
+//             EdgeBlock *base = NULL;
+
+//             if ((device_vertex_dictionary->edge_block_address[source_vertex] == NULL) || (batch_number == 0)) {
+
+//                 if (new_edge_block_count > 0) {
+//                     unsigned long index_counter = id - d_csr_offset[source_vertex];
+//                     unsigned long current_edge_block_counter = (index_counter / EDGE_BLOCK_SIZE);
+//                     base = pop_edge_block_address(total_edge_blocks_count_batch, d_prefix_sum_edge_blocks, source_vertex);
+//                     root = base + current_edge_block_counter;
+                    
+//                     if (!(index_counter % EDGE_BLOCK_SIZE)) {
+//                         unsigned long global_index_counter = active_edge_block_count + current_edge_block_counter;
+//                         unsigned long length = 0;
+                
+//                         unsigned long bit_string = bit_string_lookup[global_index_counter];
+//                         root->src_vertex = source_vertex + 1;
+                        
+//                         insert_edge_block_to_CBT_v2(NULL, bit_string, length, root, NULL, current_edge_block_counter, global_index_counter, active_edge_block_count, active_edge_block_count + new_edge_block_count, source_vertex, id);
+
+//                     }
+
+//                     unsigned long edge_entry_index = index_counter % EDGE_BLOCK_SIZE;
+//                     // return;
+
+//                     root->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
+//                     atomicAdd(&(root->active_edge_count), 1);
+//                     return;
+//                 }
+//             } else if ((device_vertex_dictionary->edge_block_address[source_vertex] != NULL) && (batch_number)) { 
+//                 // below else is taken if it's the subsequent batch insert to an adjacency
+                
+//                 unsigned long last_insert_edge_offset = device_vertex_dictionary->last_insert_edge_offset[source_vertex];
+//                 unsigned long space_remaining = 0;
+//                 if (last_insert_edge_offset != 0)
+//                     space_remaining = EDGE_BLOCK_SIZE - last_insert_edge_offset;
+//                 unsigned long index_counter = id - d_csr_offset[source_vertex];
+
+//                 // fill up newly allocated edge_blocks
+//                 if (((index_counter >= space_remaining)) && (new_edge_block_count > 0)) {
+                    
+//                     index_counter -= space_remaining;
+
+//                     // current_edge_block_counter value is 0 for the first new edge block
+//                     unsigned long current_edge_block_counter = (index_counter / EDGE_BLOCK_SIZE);
+//                     base = pop_edge_block_address(total_edge_blocks_count_batch, d_prefix_sum_edge_blocks, source_vertex);
+//                     root = base + current_edge_block_counter;
+
+//                     if (!(index_counter % EDGE_BLOCK_SIZE)) {
+
+//                         unsigned long global_index_counter = active_edge_block_count + current_edge_block_counter;
+//                         unsigned long length = 0;
+                    
+//                         unsigned long bit_string = bit_string_lookup[global_index_counter];
+//                         root->src_vertex = source_vertex + 1;
+
+//                         insert_edge_block_to_CBT_v2(device_vertex_dictionary->edge_block_address[source_vertex], bit_string, length, root, device_vertex_dictionary->last_insert_edge_block[source_vertex], current_edge_block_counter, global_index_counter, active_edge_block_count, active_edge_block_count + new_edge_block_count, source_vertex, id);
+
+//                     }
+
+//                     unsigned long edge_entry_index = index_counter % EDGE_BLOCK_SIZE;
+//                     root->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
+//                     atomicAdd(&(root->active_edge_count), 1);
+//                 } else { // fill up remaining space in last_insert_edge_block
+//                     if ((index_counter < space_remaining) && (space_remaining != EDGE_BLOCK_SIZE)) {
+//                         // traverse to last insert edge block
+//                         unsigned long edge_entry_index = index_counter + last_insert_edge_offset;
+//                         device_vertex_dictionary->last_insert_edge_block[source_vertex]->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
+                        
+//                         atomicAdd(&(device_vertex_dictionary->last_insert_edge_block[source_vertex]->active_edge_count), 1);
+
+//                         // printf("ID: %ld, edge_index: %ld, address of last edge block: %p\n", id, edge_entry_index, device_vertex_dictionary->last_insert_edge_block[source_vertex]);
+//                         return;
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
+
+
+__global__ void batched_edge_inserts_EC_opt(
+    EdgeBlock *d_edge_preallocate_list,
+    unsigned long *d_edge_blocks_count_init,
+    unsigned long total_edge_blocks_count_batch,
+    unsigned long vertex_size,
+    unsigned long edge_size,
+    unsigned long *d_prefix_sum_edge_blocks,
+    unsigned long thread_blocks,
+    VertexDictionary *device_vertex_dictionary,
+    unsigned long batch_number,
+    unsigned long batch_size,
+    unsigned long start_index_batch,
+    unsigned long end_index_batch,
+    unsigned long *d_csr_offset,
+    unsigned long *d_csr_edges,
+    unsigned long *d_source_degrees
+) {
     unsigned long id = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int warp_id = threadIdx.x / warpSize;
+    unsigned int lane_id = threadIdx.x % warpSize;
 
-    if (id < batch_size) {
-        unsigned long target_vertex = d_csr_edges[id];
+    if (id >= batch_size) return;
 
-        if (target_vertex != INFTY) {
+    unsigned long target_vertex = d_csr_edges[id];
+    if (target_vertex == INFTY) return;
 
-            unsigned long source_vertex = device_binary_search(d_csr_offset, id, vertex_size);
-            unsigned long active_edge_block_count = device_vertex_dictionary->edge_block_count[source_vertex];
-            unsigned long new_edge_block_count = d_prefix_sum_edge_blocks[source_vertex + 1] - d_prefix_sum_edge_blocks[source_vertex];
+    // Load source vertex via binary search (expensive, might consider storing precomputed)
+    unsigned long source_vertex = device_binary_search(d_csr_offset, id, vertex_size);
+    unsigned long src_offset = d_csr_offset[source_vertex];
+    unsigned long index_counter = id - src_offset;
+    unsigned long active_block_count = device_vertex_dictionary->edge_block_count[source_vertex];
+    unsigned long new_block_count = d_prefix_sum_edge_blocks[source_vertex + 1] - d_prefix_sum_edge_blocks[source_vertex];
 
-            EdgeBlock *root = NULL;
-            EdgeBlock *base = NULL;
+    bool is_first_batch = (batch_number == 0);
+    bool has_existing_blocks = (device_vertex_dictionary->edge_block_address[source_vertex] != NULL);
 
-            if ((device_vertex_dictionary->edge_block_address[source_vertex] == NULL) || (batch_number == 0)) {
+    EdgeBlock *base = nullptr;
+    EdgeBlock *root = nullptr;
 
-                if (new_edge_block_count > 0) {
-                    unsigned long index_counter = id - d_csr_offset[source_vertex];
-                    unsigned long current_edge_block_counter = (index_counter / EDGE_BLOCK_SIZE);
-                    base = pop_edge_block_address(total_edge_blocks_count_batch, d_prefix_sum_edge_blocks, source_vertex);
-                    root = base + current_edge_block_counter;
-                    
-                    if (!(index_counter % EDGE_BLOCK_SIZE)) {
-                        unsigned long global_index_counter = active_edge_block_count + current_edge_block_counter;
-                        unsigned long length = 0;
-                
-                        unsigned long bit_string = bit_string_lookup[global_index_counter];
-                        root->src_vertex = source_vertex + 1;
-                        
-                        insert_edge_block_to_CBT_v2(NULL, bit_string, length, root, NULL, current_edge_block_counter, global_index_counter, active_edge_block_count, active_edge_block_count + new_edge_block_count, source_vertex, id);
+    // Case 1: New allocation on first batch or vertex never had blocks
+    if (!has_existing_blocks || is_first_batch) {
+        if (new_block_count == 0) return;
 
-                    }
+        unsigned long block_index = index_counter / EDGE_BLOCK_SIZE;
+        base = pop_edge_block_address(total_edge_blocks_count_batch, d_prefix_sum_edge_blocks, source_vertex);
+        root = base + block_index;
 
-                    unsigned long edge_entry_index = index_counter % EDGE_BLOCK_SIZE;
-                    // return;
+        if ((index_counter % EDGE_BLOCK_SIZE) == 0) {
+            unsigned long global_index = active_block_count + block_index;
+            unsigned long length = 0;
+            unsigned long bit_string = bit_string_lookup[global_index];
 
-                    root->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
-                    atomicAdd(&(root->active_edge_count), 1);
-                    return;
+            // One thread per warp inserts block, warp sync reduces duplication
+            if (lane_id == 0) {
+                root->src_vertex = source_vertex + 1;
+                insert_edge_block_to_CBT_v2(
+                    NULL, bit_string, length, root, NULL,
+                    block_index, global_index,
+                    active_block_count, active_block_count + new_block_count,
+                    source_vertex, id
+                );
+            }
+        }
+
+        unsigned long edge_entry_index = index_counter % EDGE_BLOCK_SIZE;
+        root->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
+
+        // Warp aggregation for atomicAdd
+        unsigned int vote = __ballot_sync(0xffffffff, true);
+        if (lane_id == 0) {
+            unsigned int n = __popc(vote);
+            atomicAdd(&(root->active_edge_count), n);
+        }
+    }
+    // Case 2: Appending to existing blocks in further batches
+    else {
+        unsigned long last_offset = device_vertex_dictionary->last_insert_edge_offset[source_vertex];
+        unsigned long space_remaining = (last_offset > 0) ? (EDGE_BLOCK_SIZE - last_offset) : 0;
+
+        if ((index_counter < space_remaining) && (space_remaining != EDGE_BLOCK_SIZE)) {
+            // Fill last edge block
+            unsigned long edge_index = index_counter + last_offset;
+            EdgeBlock *last_block = device_vertex_dictionary->last_insert_edge_block[source_vertex];
+            last_block->edge_block_entry[edge_index].destination_vertex = target_vertex;
+
+            // Warp aggregation for atomicAdd
+            unsigned int vote = __ballot_sync(0xffffffff, true);
+            if (lane_id == 0) {
+                unsigned int n = __popc(vote);
+                atomicAdd(&(last_block->active_edge_count), n);
+            }
+        } else if (new_block_count > 0) {
+            // Fill new edge blocks
+            index_counter -= space_remaining;
+            unsigned long block_index = index_counter / EDGE_BLOCK_SIZE;
+            base = pop_edge_block_address(total_edge_blocks_count_batch, d_prefix_sum_edge_blocks, source_vertex);
+            root = base + block_index;
+
+            if ((index_counter % EDGE_BLOCK_SIZE) == 0) {
+                unsigned long global_index = active_block_count + block_index;
+                unsigned long length = 0;
+                unsigned long bit_string = bit_string_lookup[global_index];
+
+                if (lane_id == 0) {
+                    root->src_vertex = source_vertex + 1;
+                    insert_edge_block_to_CBT_v2(
+                        device_vertex_dictionary->edge_block_address[source_vertex], bit_string, length, root,
+                        device_vertex_dictionary->last_insert_edge_block[source_vertex],
+                        block_index, global_index,
+                        active_block_count, active_block_count + new_block_count,
+                        source_vertex, id
+                    );
                 }
-            } else if ((device_vertex_dictionary->edge_block_address[source_vertex] != NULL) && (batch_number)) { 
-                // below else is taken if it's the subsequent batch insert to an adjacency
-                
-                unsigned long last_insert_edge_offset = device_vertex_dictionary->last_insert_edge_offset[source_vertex];
-                unsigned long space_remaining = 0;
-                if (last_insert_edge_offset != 0)
-                    space_remaining = EDGE_BLOCK_SIZE - last_insert_edge_offset;
-                unsigned long index_counter = id - d_csr_offset[source_vertex];
+            }
 
-                // fill up newly allocated edge_blocks
-                if (((index_counter >= space_remaining)) && (new_edge_block_count > 0)) {
-                    
-                    index_counter -= space_remaining;
+            unsigned long edge_entry_index = index_counter % EDGE_BLOCK_SIZE;
+            root->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
 
-                    // current_edge_block_counter value is 0 for the first new edge block
-                    unsigned long current_edge_block_counter = (index_counter / EDGE_BLOCK_SIZE);
-                    base = pop_edge_block_address(total_edge_blocks_count_batch, d_prefix_sum_edge_blocks, source_vertex);
-                    root = base + current_edge_block_counter;
-
-                    if (!(index_counter % EDGE_BLOCK_SIZE)) {
-
-                        unsigned long global_index_counter = active_edge_block_count + current_edge_block_counter;
-                        unsigned long length = 0;
-                    
-                        unsigned long bit_string = bit_string_lookup[global_index_counter];
-                        root->src_vertex = source_vertex + 1;
-
-                        insert_edge_block_to_CBT_v2(device_vertex_dictionary->edge_block_address[source_vertex], bit_string, length, root, device_vertex_dictionary->last_insert_edge_block[source_vertex], current_edge_block_counter, global_index_counter, active_edge_block_count, active_edge_block_count + new_edge_block_count, source_vertex, id);
-
-                    }
-
-                    unsigned long edge_entry_index = index_counter % EDGE_BLOCK_SIZE;
-                    root->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
-                    atomicAdd(&(root->active_edge_count), 1);
-                } else { // fill up remaining space in last_insert_edge_block
-                    if ((index_counter < space_remaining) && (space_remaining != EDGE_BLOCK_SIZE)) {
-                        // traverse to last insert edge block
-                        unsigned long edge_entry_index = index_counter + last_insert_edge_offset;
-                        device_vertex_dictionary->last_insert_edge_block[source_vertex]->edge_block_entry[edge_entry_index].destination_vertex = target_vertex;
-                        
-                        atomicAdd(&(device_vertex_dictionary->last_insert_edge_block[source_vertex]->active_edge_count), 1);
-
-                        // printf("ID: %ld, edge_index: %ld, address of last edge block: %p\n", id, edge_entry_index, device_vertex_dictionary->last_insert_edge_block[source_vertex]);
-                        return;
-                    }
-                }
+            // Warp-level aggregated atomic add
+            unsigned int vote = __ballot_sync(0xffffffff, true);
+            if (lane_id == 0) {
+                unsigned int n = __popc(vote);
+                atomicAdd(&(root->active_edge_count), n);
             }
         }
     }
@@ -385,7 +514,7 @@ __global__ void cub_sort_edge_blocks() {
     EdgeBlock* block = d_e_queue.edge_block_address[idx];
     const int tid = threadIdx.x;
 
-    if (tid >= EDGE_BLOCK_SIZE) return;
+    if (tid >= block->active_edge_count) return;
 
     using KeyT = unsigned long long;
     using ValueT = Edge;
@@ -402,9 +531,79 @@ __global__ void cub_sort_edge_blocks() {
     keys[0] = block->edge_block_entry[tid].destination_vertex;
     values[0] = block->edge_block_entry[tid];
 
-    __syncthreads(); // barrier before sort
+    // __syncthreads(); // barrier before sort
     BlockRadixSortT(temp_storage).Sort(keys, values);
-    __syncthreads(); // barrier after sort
+    // __syncthreads(); // barrier after sort
 
     block->edge_block_entry[tid] = values[0];
+}
+
+__global__ void warp_bitonic_edge_sort() {
+    unsigned long long block_idx = blockIdx.x;
+    if (block_idx >= d_e_queue.front) return;
+
+    EdgeBlock *block = d_e_queue.edge_block_address[block_idx];
+    int tid = threadIdx.x;
+
+    __shared__ Edge shared_edges[EDGE_BLOCK_SIZE];
+    __shared__ int valid_count;
+
+    Edge edge = block->edge_block_entry[tid];
+    bool is_valid = (edge.destination_vertex != 0 && edge.destination_vertex != INFTY);
+
+    // Phase 1: Warp-level Compaction
+    unsigned int mask = __ballot_sync(0xFFFFFFFF, is_valid);
+    int pos = __popc(mask & ((1U << (tid % 32)) - 1));
+    int warp_id = tid / 32;
+
+    __shared__ int warp_offsets[8];
+    if ((tid % 32) == 0) {
+        int total = __popc(mask);
+        warp_offsets[warp_id] = atomicAdd(&valid_count, total);
+    }
+    __syncthreads();
+
+    if (is_valid) {
+        int global_pos = warp_offsets[warp_id] + pos;
+        shared_edges[global_pos] = edge;
+    }
+
+    __syncthreads();
+
+    // Phase 2: Bitonic sort only on valid_count elements
+    int vcount = valid_count;
+    for (int k = 2; k <= EDGE_BLOCK_SIZE; k *= 2) {
+        for (int j = k / 2; j > 0; j /= 2) {
+            int ixj = tid ^ j;
+            if (ixj > tid && tid < vcount && ixj < vcount) {
+                Edge a = shared_edges[tid];
+                Edge b = shared_edges[ixj];
+                if ((tid & k) == 0) {
+                    if (a.destination_vertex > b.destination_vertex) {
+                        shared_edges[tid] = b;
+                        shared_edges[ixj] = a;
+                    }
+                } else {
+                    if (a.destination_vertex < b.destination_vertex) {
+                        shared_edges[tid] = b;
+                        shared_edges[ixj] = a;
+                    }
+                }
+            }
+            __syncthreads();
+        }
+    }
+
+    // Phase 3: Pad rest with INFTY
+    if (tid >= valid_count && tid < EDGE_BLOCK_SIZE) {
+        shared_edges[tid].destination_vertex = INFTY;
+    }
+
+    __syncthreads();
+
+    // Phase 4: Write back
+    block->edge_block_entry[tid] = shared_edges[tid];
+    if (tid == 0) {
+        block->active_edge_count = valid_count;
+    }
 }
